@@ -1,0 +1,151 @@
+<Window x:Class="ScreenPenPortable.UI.ToolbarWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:ScreenPenPortable.UI"
+        mc:Ignorable="d"
+        Title="ScreenPen 툴바"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ResizeMode="NoResize"
+        SizeToContent="WidthAndHeight"
+        WindowStartupLocation="Manual">
+
+    <Window.Resources>
+        <!-- ── 색상 팔레트 ──────────────────────────────────────── -->
+        <SolidColorBrush x:Key="BarBackground" Color="#F21E1E1E"/>
+        <SolidColorBrush x:Key="BtnIdle" Color="Transparent"/>
+        <SolidColorBrush x:Key="BtnHover" Color="#33FFFFFF"/>
+        <SolidColorBrush x:Key="BtnActive" Color="#FF3D7DFF"/>
+        <SolidColorBrush x:Key="Ink" Color="#FFEDEDED"/>
+        <SolidColorBrush x:Key="Divider" Color="#33FFFFFF"/>
+
+        <!-- ── 공통 도구 버튼 스타일(아이콘 글리프) ──────────────── -->
+        <Style x:Key="ToolButton" TargetType="Button">
+            <Setter Property="Width" Value="34"/>
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="Margin" Value="2,0"/>
+            <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+            <Setter Property="Background" Value="{StaticResource BtnIdle}"/>
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd"
+                                CornerRadius="6"
+                                Background="{TemplateBinding Background}">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background"
+                                        Value="{StaticResource BtnHover}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.4"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 세로 구분선 -->
+        <Style x:Key="Sep" TargetType="Border">
+            <Setter Property="Width" Value="1"/>
+            <Setter Property="Height" Value="22"/>
+            <Setter Property="Margin" Value="5,0"/>
+            <Setter Property="Background" Value="{StaticResource Divider}"/>
+        </Style>
+    </Window.Resources>
+
+    <!-- 바깥 Border 가 실제 배경(둥근 모서리). 빈 영역 드래그로 이동 -->
+    <Border CornerRadius="12"
+            Background="{StaticResource BarBackground}"
+            Padding="8,6"
+            MouseLeftButtonDown="OnDragArea_MouseLeftButtonDown">
+        <Border.Effect>
+            <DropShadowEffect Color="Black" BlurRadius="14"
+                              ShadowDepth="0" Opacity="0.5"/>
+        </Border.Effect>
+
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+
+            <!-- ── 도구: 펜 / 하이라이터 / 지우개 ──────────────── -->
+            <Button x:Name="PenButton" Style="{StaticResource ToolButton}"
+                    Content="&#x270E;" ToolTip="펜"
+                    Click="OnPenClick"/>
+            <Button x:Name="HighlighterButton" Style="{StaticResource ToolButton}"
+                    Content="&#x1F58D;" ToolTip="하이라이터"
+                    Click="OnHighlighterClick"/>
+            <Button x:Name="EraserButton" Style="{StaticResource ToolButton}"
+                    Content="&#x232B;" ToolTip="지우개"
+                    Click="OnEraserClick"/>
+
+            <Border Style="{StaticResource Sep}"/>
+
+            <!-- ── Quick 색상 스와치 6칸(SetQuickColors 로 채워짐) ── -->
+            <ItemsControl x:Name="ColorSwatches" VerticalAlignment="Center">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+            </ItemsControl>
+
+            <Border Style="{StaticResource Sep}"/>
+
+            <!-- ── 굵기 슬라이더(1~40) ──────────────────────────── -->
+            <TextBlock Text="&#x25CF;" Foreground="{StaticResource Ink}"
+                       FontSize="9" VerticalAlignment="Center" Margin="2,0"/>
+            <Slider x:Name="ThicknessSlider"
+                    Width="90" Minimum="1" Maximum="40" Value="3"
+                    VerticalAlignment="Center"
+                    IsSnapToTickEnabled="False"
+                    ToolTip="굵기"
+                    ValueChanged="OnThicknessChanged"/>
+            <TextBlock x:Name="ThicknessLabel" Text="3"
+                       Foreground="{StaticResource Ink}" FontSize="11"
+                       Width="22" TextAlignment="Center"
+                       VerticalAlignment="Center"/>
+
+            <Border Style="{StaticResource Sep}"/>
+
+            <!-- ── 편집: Undo / Redo / 전체지우기 ───────────────── -->
+            <Button x:Name="UndoButton" Style="{StaticResource ToolButton}"
+                    Content="&#x21A9;" ToolTip="실행 취소 (Undo)"
+                    Click="OnUndoClick"/>
+            <Button x:Name="RedoButton" Style="{StaticResource ToolButton}"
+                    Content="&#x21AA;" ToolTip="다시 실행 (Redo)"
+                    Click="OnRedoClick"/>
+            <Button x:Name="ClearButton" Style="{StaticResource ToolButton}"
+                    Content="&#x1F5D1;" ToolTip="전체 지우기"
+                    Click="OnClearClick"/>
+
+            <Border Style="{StaticResource Sep}"/>
+
+            <!-- ── 스크린샷 / 그리기·통과 토글 ─────────────────── -->
+            <Button x:Name="ScreenshotButton" Style="{StaticResource ToolButton}"
+                    Content="&#x1F4F7;" ToolTip="스크린샷"
+                    Click="OnScreenshotClick"/>
+            <Button x:Name="PassThroughButton" Style="{StaticResource ToolButton}"
+                    Content="&#x270B;" ToolTip="그리기 / 통과 모드 전환"
+                    Click="OnPassThroughClick"/>
+
+            <Border Style="{StaticResource Sep}"/>
+
+            <!-- ── 종료 ─────────────────────────────────────────── -->
+            <Button x:Name="ExitButton" Style="{StaticResource ToolButton}"
+                    Content="&#x2715;" ToolTip="종료"
+                    Foreground="#FFFF6B6B"
+                    Click="OnExitClick"/>
+        </StackPanel>
+    </Border>
+</Window>

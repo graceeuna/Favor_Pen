@@ -6,12 +6,21 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
     <RootNamespace>ScreenPenPortable</RootNamespace>
     <AssemblyName>ScreenPenPortable</AssemblyName>
     <Product>ScreenPen Portable</Product>
     <Version>0.1.0</Version>
     <Description>무설치 화면 주석 도구 (Epic Pen 호환 기능 클론)</Description>
   </PropertyGroup>
+
+  <!-- WPF + WinForms 동시 사용 시 System.Drawing / System.Windows.Forms 전역(implicit) using이
+       WPF 타입(Color/Brush/Application/KeyEventArgs)과 충돌(CS0104).
+       WinForms 전역 using을 제거하고, WinForms가 필요한 파일(Services/*)만 명시적 using 사용. -->
+  <ItemGroup>
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+  </ItemGroup>
 
   <!--
     무설치(Portable) 단일 실행파일 배포 명령은 README.md 참고:

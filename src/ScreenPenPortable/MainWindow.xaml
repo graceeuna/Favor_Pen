@@ -15,30 +15,7 @@
         WindowStartupLocation="Manual"
         KeyDown="OnKeyDown">
     <Grid>
-        <!-- 그리기 표면: Background="Transparent" 라야 빈 영역에서도 입력을 받는다 -->
+        <!-- 단일 가상화면 오버레이 그리기 표면 (Transparent 라야 빈 영역에서도 입력 수신) -->
         <InkCanvas x:Name="InkSurface" Background="Transparent"/>
-
-        <!-- 좌상단 HUD (M0 안내) -->
-        <Border x:Name="Hud"
-                HorizontalAlignment="Left" VerticalAlignment="Top"
-                Margin="16" Padding="14,10"
-                CornerRadius="8"
-                Background="#CC1E1E1E">
-            <StackPanel>
-                <TextBlock Text="ScreenPen Portable — M0 PoC"
-                           Foreground="White" FontWeight="Bold" FontSize="13"/>
-                <TextBlock x:Name="ModeText" Text="그리기 모드"
-                           Foreground="#7CFC7C" FontSize="12" Margin="0,4,0,0"/>
-                <TextBlock Foreground="#CFCFCF" FontSize="11" Margin="0,6,0,0">
-                    <Run Text="Ctrl+Alt+D"/><Run Text=" : 그리기 / 통과 모드 전환 (전역)"/>
-                </TextBlock>
-                <TextBlock Foreground="#CFCFCF" FontSize="11">
-                    <Run Text="Delete"/><Run Text="    : 전체 지우기"/>
-                </TextBlock>
-                <TextBlock Foreground="#CFCFCF" FontSize="11">
-                    <Run Text="Esc"/><Run Text="       : 종료"/>
-                </TextBlock>
-            </StackPanel>
-        </Border>
     </Grid>
 </Window>
