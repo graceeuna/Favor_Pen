@@ -7,7 +7,7 @@ using ScreenPenPortable.Settings;
 namespace ScreenPenPortable.UI;
 
 /// <summary>
-/// 프레임리스 항상-위 플로팅 툴바. 도구/색상/굵기/편집 명령을 이벤트로 노출하고,
+/// 프레임리스 항상-위 플로팅 툴바. 도구/색상/굵기/편집/효과 명령을 이벤트로 노출하고,
 /// 외부(지휘자)가 상태를 역방향으로 동기화할 수 있도록 Set* 메서드를 제공한다.
 /// 모든 명령은 클릭/슬라이더 조작 시 이벤트로 발행되며, Set* 메서드는
 /// 이벤트를 재발생시키지 않는다(피드백 루프 방지).
@@ -35,6 +35,13 @@ public partial class ToolbarWindow : Window
     public event Action? ScreenshotRequested;
     public event Action? PassThroughToggled;
     public event Action? ExitRequested;
+    // ── M2/M3 추가 이벤트 ─────────────────────────────────────────
+    public event Action? FillCycleRequested;        // FR-23 도형 채움 순환
+    public event Action? WhiteboardToggleRequested; // FR-16 화이트/블랙보드 순환
+    public event Action? GhostToggleRequested;       // FR-19 고스트 모드
+    public event Action? MagnifierToggleRequested;   // FR-24 돋보기
+    public event Action? FadeToggleRequested;        // FR-20 페이딩 잉크
+    public event Action? HaloToggleRequested;        // FR-21 하이라이트 커서
 
     public ToolbarWindow()
     {
@@ -52,24 +59,24 @@ public partial class ToolbarWindow : Window
         }
     }
 
-    // ── 도구 버튼 ─────────────────────────────────────────────────
-    private void OnPenClick(object sender, RoutedEventArgs e)
+    // ── 도구 버튼: 잉크 + 도형 + 텍스트/넘버 ──────────────────────
+    private void SelectTool(ToolKind tool)
     {
-        SetActiveTool(ToolKind.Pen);
-        ToolSelected?.Invoke(ToolKind.Pen);
+        SetActiveTool(tool);
+        ToolSelected?.Invoke(tool);
     }
 
-    private void OnHighlighterClick(object sender, RoutedEventArgs e)
-    {
-        SetActiveTool(ToolKind.Highlighter);
-        ToolSelected?.Invoke(ToolKind.Highlighter);
-    }
+    private void OnPenClick(object sender, RoutedEventArgs e) => SelectTool(ToolKind.Pen);
+    private void OnHighlighterClick(object sender, RoutedEventArgs e) => SelectTool(ToolKind.Highlighter);
+    private void OnEraserClick(object sender, RoutedEventArgs e) => SelectTool(ToolKind.Eraser);
+    private void OnLineClick(object sender, RoutedEventArgs e) => SelectTool(ToolKind.Line);
+    private void OnArrowClick(object sender, RoutedEventArgs e) => SelectTool(ToolKind.Arrow);
+    private void OnRectClick(object sender, RoutedEventArgs e) => SelectTool(ToolKind.Rectangle);
+    private void OnEllipseClick(object sender, RoutedEventArgs e) => SelectTool(ToolKind.Ellipse);
+    private void OnTextClick(object sender, RoutedEventArgs e) => SelectTool(ToolKind.Text);
+    private void OnNumberClick(object sender, RoutedEventArgs e) => SelectTool(ToolKind.Number);
 
-    private void OnEraserClick(object sender, RoutedEventArgs e)
-    {
-        SetActiveTool(ToolKind.Eraser);
-        ToolSelected?.Invoke(ToolKind.Eraser);
-    }
+    private void OnFillClick(object sender, RoutedEventArgs e) => FillCycleRequested?.Invoke();
 
     // ── 편집 버튼 ─────────────────────────────────────────────────
     private void OnUndoClick(object sender, RoutedEventArgs e) => UndoRequested?.Invoke();
@@ -84,6 +91,13 @@ public partial class ToolbarWindow : Window
         SetPassThrough(!_passThrough);
         PassThroughToggled?.Invoke();
     }
+
+    // ── 보드/효과 토글 버튼 ───────────────────────────────────────
+    private void OnWhiteboardClick(object sender, RoutedEventArgs e) => WhiteboardToggleRequested?.Invoke();
+    private void OnGhostClick(object sender, RoutedEventArgs e) => GhostToggleRequested?.Invoke();
+    private void OnMagnifierClick(object sender, RoutedEventArgs e) => MagnifierToggleRequested?.Invoke();
+    private void OnFadeClick(object sender, RoutedEventArgs e) => FadeToggleRequested?.Invoke();
+    private void OnHaloClick(object sender, RoutedEventArgs e) => HaloToggleRequested?.Invoke();
 
     private void OnExitClick(object sender, RoutedEventArgs e) => ExitRequested?.Invoke();
 
@@ -104,7 +118,7 @@ public partial class ToolbarWindow : Window
 
     // ── 공개 API: 외부 → 툴바 상태 동기화 ─────────────────────────
 
-    /// <summary>Quick 색상 스와치 6칸을 "#AARRGGBB" 문자열들로 채운다.</summary>
+    /// <summary>Quick 색상 스와치를 "#AARRGGBB" 문자열들로 채운다.</summary>
     public void SetQuickColors(IEnumerable<string> argbHex)
     {
         ColorSwatches.Items.Clear();
@@ -154,6 +168,12 @@ public partial class ToolbarWindow : Window
         PenButton.Background = tool == ToolKind.Pen ? ActiveBrush : IdleBrush;
         HighlighterButton.Background = tool == ToolKind.Highlighter ? ActiveBrush : IdleBrush;
         EraserButton.Background = tool == ToolKind.Eraser ? ActiveBrush : IdleBrush;
+        LineButton.Background = tool == ToolKind.Line ? ActiveBrush : IdleBrush;
+        ArrowButton.Background = tool == ToolKind.Arrow ? ActiveBrush : IdleBrush;
+        RectButton.Background = tool == ToolKind.Rectangle ? ActiveBrush : IdleBrush;
+        EllipseButton.Background = tool == ToolKind.Ellipse ? ActiveBrush : IdleBrush;
+        TextButton.Background = tool == ToolKind.Text ? ActiveBrush : IdleBrush;
+        NumberButton.Background = tool == ToolKind.Number ? ActiveBrush : IdleBrush;
     }
 
     /// <summary>슬라이더 값을 동기화한다(ThicknessChanged 재발생 안 함).</summary>
@@ -178,6 +198,33 @@ public partial class ToolbarWindow : Window
         PassThroughButton.Content = on ? "\U0001F590" : "✋";
         PassThroughButton.ToolTip = on ? "통과 모드 (클릭하면 그리기)" : "그리기 모드 (클릭하면 통과)";
         PassThroughButton.Background = on ? ActiveBrush : IdleBrush;
+    }
+
+    // ── 토글 상태 표시(이벤트 미발생) ─────────────────────────────
+    public void SetWhiteboardActive(bool on) => WhiteboardButton.Background = on ? ActiveBrush : IdleBrush;
+    public void SetMagnifierActive(bool on) => MagnifierButton.Background = on ? ActiveBrush : IdleBrush;
+    public void SetFadeActive(bool on) => FadeButton.Background = on ? ActiveBrush : IdleBrush;
+    public void SetHaloActive(bool on) => HaloButton.Background = on ? ActiveBrush : IdleBrush;
+
+    /// <summary>현재 도형 채움 상태를 글리프로 표시(없음/컬러/외곽선/흰/검).</summary>
+    public void SetFillMode(FillMode mode)
+    {
+        FillButton.Content = mode switch
+        {
+            FillMode.None => "○",      // ○ 빈 원
+            FillMode.ColorFill => "●", // ● 채운 원
+            FillMode.Outline => "◎",   // ◎ 외곽선
+            FillMode.WhiteFill => "◐", // ◐ 흰
+            FillMode.BlackFill => "◑", // ◑ 검
+            _ => "◑"
+        };
+    }
+
+    /// <summary>Undo/Redo 버튼 활성화 상태를 갱신한다.</summary>
+    public void SetUndoRedoEnabled(bool canUndo, bool canRedo)
+    {
+        UndoButton.IsEnabled = canUndo;
+        RedoButton.IsEnabled = canRedo;
     }
 
     /// <summary>색상 스와치용 둥근 버튼 템플릿(테두리 + 채움).</summary>

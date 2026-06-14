@@ -26,9 +26,9 @@
 
         <!-- ── 공통 도구 버튼 스타일(아이콘 글리프) ──────────────── -->
         <Style x:Key="ToolButton" TargetType="Button">
-            <Setter Property="Width" Value="34"/>
+            <Setter Property="Width" Value="32"/>
             <Setter Property="Height" Value="34"/>
-            <Setter Property="Margin" Value="2,0"/>
+            <Setter Property="Margin" Value="1,0"/>
             <Setter Property="Foreground" Value="{StaticResource Ink}"/>
             <Setter Property="Background" Value="{StaticResource BtnIdle}"/>
             <Setter Property="FontSize" Value="16"/>
@@ -61,7 +61,7 @@
         <Style x:Key="Sep" TargetType="Border">
             <Setter Property="Width" Value="1"/>
             <Setter Property="Height" Value="22"/>
-            <Setter Property="Margin" Value="5,0"/>
+            <Setter Property="Margin" Value="4,0"/>
             <Setter Property="Background" Value="{StaticResource Divider}"/>
         </Style>
     </Window.Resources>
@@ -78,20 +78,39 @@
 
         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
 
-            <!-- ── 도구: 펜 / 하이라이터 / 지우개 ──────────────── -->
+            <!-- ── 잉크 도구: 펜 / 하이라이터 / 지우개 ─────────────── -->
             <Button x:Name="PenButton" Style="{StaticResource ToolButton}"
-                    Content="&#x270E;" ToolTip="펜"
-                    Click="OnPenClick"/>
+                    Content="&#x270E;" ToolTip="펜 (Ctrl+Alt+1)" Click="OnPenClick"/>
             <Button x:Name="HighlighterButton" Style="{StaticResource ToolButton}"
-                    Content="&#x1F58D;" ToolTip="하이라이터"
-                    Click="OnHighlighterClick"/>
+                    Content="&#x1F58D;" ToolTip="하이라이터 (Ctrl+Alt+2)" Click="OnHighlighterClick"/>
             <Button x:Name="EraserButton" Style="{StaticResource ToolButton}"
-                    Content="&#x232B;" ToolTip="지우개"
-                    Click="OnEraserClick"/>
+                    Content="&#x232B;" ToolTip="지우개 (Ctrl+Alt+3)" Click="OnEraserClick"/>
 
             <Border Style="{StaticResource Sep}"/>
 
-            <!-- ── Quick 색상 스와치 6칸(SetQuickColors 로 채워짐) ── -->
+            <!-- ── 도형 도구: 직선 / 화살표 / 사각형 / 타원 + 채움순환 ── -->
+            <Button x:Name="LineButton" Style="{StaticResource ToolButton}"
+                    Content="&#x2571;" ToolTip="직선 (Shift=각도 스냅)" Click="OnLineClick"/>
+            <Button x:Name="ArrowButton" Style="{StaticResource ToolButton}"
+                    Content="&#x2197;" ToolTip="화살표" Click="OnArrowClick"/>
+            <Button x:Name="RectButton" Style="{StaticResource ToolButton}"
+                    Content="&#x25AD;" ToolTip="사각형 (Shift=정사각형)" Click="OnRectClick"/>
+            <Button x:Name="EllipseButton" Style="{StaticResource ToolButton}"
+                    Content="&#x25EF;" ToolTip="타원 (Shift=정원)" Click="OnEllipseClick"/>
+            <Button x:Name="FillButton" Style="{StaticResource ToolButton}"
+                    Content="&#x25D1;" ToolTip="도형 채움 순환: 없음→컬러→외곽선→흰색→검정" Click="OnFillClick"/>
+
+            <Border Style="{StaticResource Sep}"/>
+
+            <!-- ── 텍스트 / 넘버링 ──────────────────────────────── -->
+            <Button x:Name="TextButton" Style="{StaticResource ToolButton}"
+                    Content="T" FontWeight="Bold" ToolTip="텍스트" Click="OnTextClick"/>
+            <Button x:Name="NumberButton" Style="{StaticResource ToolButton}"
+                    Content="&#x2460;" ToolTip="넘버링 태그 (클릭마다 1,2,3…)" Click="OnNumberClick"/>
+
+            <Border Style="{StaticResource Sep}"/>
+
+            <!-- ── Quick 색상 스와치(SetQuickColors 로 채워짐) ─────── -->
             <ItemsControl x:Name="ColorSwatches" VerticalAlignment="Center">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
@@ -106,46 +125,54 @@
             <TextBlock Text="&#x25CF;" Foreground="{StaticResource Ink}"
                        FontSize="9" VerticalAlignment="Center" Margin="2,0"/>
             <Slider x:Name="ThicknessSlider"
-                    Width="90" Minimum="1" Maximum="40" Value="3"
+                    Width="80" Minimum="1" Maximum="40" Value="3"
                     VerticalAlignment="Center"
                     IsSnapToTickEnabled="False"
                     ToolTip="굵기"
                     ValueChanged="OnThicknessChanged"/>
             <TextBlock x:Name="ThicknessLabel" Text="3"
                        Foreground="{StaticResource Ink}" FontSize="11"
-                       Width="22" TextAlignment="Center"
+                       Width="20" TextAlignment="Center"
                        VerticalAlignment="Center"/>
 
             <Border Style="{StaticResource Sep}"/>
 
             <!-- ── 편집: Undo / Redo / 전체지우기 ───────────────── -->
             <Button x:Name="UndoButton" Style="{StaticResource ToolButton}"
-                    Content="&#x21A9;" ToolTip="실행 취소 (Undo)"
-                    Click="OnUndoClick"/>
+                    Content="&#x21A9;" ToolTip="실행 취소 (Ctrl+Alt+Z)" Click="OnUndoClick"/>
             <Button x:Name="RedoButton" Style="{StaticResource ToolButton}"
-                    Content="&#x21AA;" ToolTip="다시 실행 (Redo)"
-                    Click="OnRedoClick"/>
+                    Content="&#x21AA;" ToolTip="다시 실행 (Ctrl+Alt+Y)" Click="OnRedoClick"/>
             <Button x:Name="ClearButton" Style="{StaticResource ToolButton}"
-                    Content="&#x1F5D1;" ToolTip="전체 지우기"
-                    Click="OnClearClick"/>
+                    Content="&#x1F5D1;" ToolTip="전체 지우기 (Ctrl+Alt+E)" Click="OnClearClick"/>
 
             <Border Style="{StaticResource Sep}"/>
 
-            <!-- ── 스크린샷 / 그리기·통과 토글 ─────────────────── -->
+            <!-- ── 캡처 / 모드 ──────────────────────────────────── -->
             <Button x:Name="ScreenshotButton" Style="{StaticResource ToolButton}"
-                    Content="&#x1F4F7;" ToolTip="스크린샷"
-                    Click="OnScreenshotClick"/>
+                    Content="&#x1F4F7;" ToolTip="스크린샷 (Ctrl+Alt+S)" Click="OnScreenshotClick"/>
             <Button x:Name="PassThroughButton" Style="{StaticResource ToolButton}"
-                    Content="&#x270B;" ToolTip="그리기 / 통과 모드 전환"
-                    Click="OnPassThroughClick"/>
+                    Content="&#x270B;" ToolTip="그리기 / 통과 모드 전환 (Ctrl+Alt+D)" Click="OnPassThroughClick"/>
+
+            <Border Style="{StaticResource Sep}"/>
+
+            <!-- ── 보드 / 효과: 화이트보드·고스트·돋보기·페이드·헤일로 ── -->
+            <Button x:Name="WhiteboardButton" Style="{StaticResource ToolButton}"
+                    Content="&#x2B1C;" ToolTip="화이트보드/블랙보드 순환 (Ctrl+Alt+W)" Click="OnWhiteboardClick"/>
+            <Button x:Name="GhostButton" Style="{StaticResource ToolButton}"
+                    Content="&#x1F47B;" ToolTip="고스트 모드: 툴바 숨김·핫키만 (Ctrl+Alt+G)" Click="OnGhostClick"/>
+            <Button x:Name="MagnifierButton" Style="{StaticResource ToolButton}"
+                    Content="&#x1F50D;" ToolTip="돋보기 (Ctrl+Alt+M)" Click="OnMagnifierClick"/>
+            <Button x:Name="FadeButton" Style="{StaticResource ToolButton}"
+                    Content="&#x1F32B;" ToolTip="페이딩 잉크: 그린 뒤 자동 사라짐 (Ctrl+Alt+F)" Click="OnFadeClick"/>
+            <Button x:Name="HaloButton" Style="{StaticResource ToolButton}"
+                    Content="&#x25CE;" ToolTip="하이라이트 커서(헤일로) (Ctrl+Alt+H)" Click="OnHaloClick"/>
 
             <Border Style="{StaticResource Sep}"/>
 
             <!-- ── 종료 ─────────────────────────────────────────── -->
             <Button x:Name="ExitButton" Style="{StaticResource ToolButton}"
-                    Content="&#x2715;" ToolTip="종료"
-                    Foreground="#FFFF6B6B"
-                    Click="OnExitClick"/>
+                    Content="&#x2715;" ToolTip="종료 (Ctrl+Alt+Q)"
+                    Foreground="#FFFF6B6B" Click="OnExitClick"/>
         </StackPanel>
     </Border>
 </Window>

@@ -1,13 +1,33 @@
+using System.Collections.Generic;
+
 namespace ScreenPenPortable.Settings;
 
 /// <summary>
-/// 현재 선택된 그리기 도구 종류. UI 팀원이 도구 전환/직렬화에 사용한다.
+/// 현재 선택된 도구 종류(잉크 + 벡터 객체 통합).
+///  - 잉크 도구(InkCanvas EditingMode): <see cref="Pen"/>/<see cref="Highlighter"/>/<see cref="Eraser"/>
+///  - 객체 도구(ObjectLayer 가 처리): <see cref="Line"/>/<see cref="Arrow"/>/<see cref="Rectangle"/>/<see cref="Ellipse"/>/<see cref="Text"/>/<see cref="Number"/>
 /// </summary>
 public enum ToolKind
 {
     Pen,
     Highlighter,
-    Eraser
+    Eraser,
+    Line,
+    Arrow,
+    Rectangle,
+    Ellipse,
+    Text,
+    Number
+}
+
+/// <summary>도형 채움 상태 순환(FR-23): 없음 → 컬러채움 → 외곽선만 → 흰색채움 → 검정채움.</summary>
+public enum FillMode
+{
+    None,
+    ColorFill,
+    Outline,
+    WhiteFill,
+    BlackFill
 }
 
 /// <summary>
@@ -47,4 +67,36 @@ public class AppSettings
     // ── 툴바 위치 ──────────────────────────────────────────────
     public double ToolbarLeft { get; set; } = 40;
     public double ToolbarTop { get; set; } = 40;
+
+    // ── FR-18 도구별 독립 색상·굵기 기억 ───────────────────────
+    // 키 = ToolKind 이름(예: "Line"). 없으면 펜 기본값으로 폴백한다.
+    public Dictionary<string, string> ToolColors { get; set; } = new();
+    public Dictionary<string, double> ToolWidths { get; set; } = new();
+
+    // ── FR-23 마지막 도형 채움 상태 ────────────────────────────
+    public FillMode LastFillMode { get; set; } = FillMode.None;
+
+    // ── FR-15 텍스트 도구 ──────────────────────────────────────
+    public string TextFontFamily { get; set; } = "Segoe UI";
+    public double TextFontSize { get; set; } = 24;
+
+    // ── FR-16 화이트보드 / 블랙보드 ────────────────────────────
+    public string WhiteboardColor { get; set; } = "#FFFFFFFF";
+    public string BlackboardColor { get; set; } = "#FF1A1A1A";
+    /// <summary>화이트/블랙보드를 표시할 대상 모니터 인덱스(-1 = 가상화면 전체).</summary>
+    public int WhiteboardMonitorIndex { get; set; } = -1;
+
+    // ── FR-20 페이딩 잉크(자동 사라짐) ─────────────────────────
+    public bool FadingInkEnabled { get; set; } = false;
+    /// <summary>스트로크가 사라지기 시작할 때까지의 유지 시간(초). 1~10 권장.</summary>
+    public double FadeSeconds { get; set; } = 3;
+
+    // ── FR-21 하이라이트 커서(헤일로) ──────────────────────────
+    public bool HighlightCursorEnabled { get; set; } = false;
+    public string HighlightCursorColor { get; set; } = "#80FFD000";
+    public double HighlightCursorRadius { get; set; } = 28;
+
+    // ── FR-24 돋보기 / 줌 ──────────────────────────────────────
+    public double MagnifierZoom { get; set; } = 2.0;
+    public int MagnifierSize { get; set; } = 320;
 }
