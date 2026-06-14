@@ -22,6 +22,12 @@
     <Using Remove="System.Drawing" />
   </ItemGroup>
 
+  <!-- 임베드 폰트(무설치 이식성): 메이플스토리체 Bold. 시스템 설치 없이 앱과 함께 배포된다.
+       넥슨 메이플스토리 서체 — 개인·상업 무료, 원형 그대로 배포 허용. 내부 패밀리명 "Maplestory". -->
+  <ItemGroup>
+    <Resource Include="Assets\Fonts\Maplestory-Bold.ttf" />
+  </ItemGroup>
+
   <!--
     무설치(Portable) 단일 실행파일 배포 명령은 README.md 참고:
     dotnet publish -c Release -r win-x64 (self-contained + PublishSingleFile)
