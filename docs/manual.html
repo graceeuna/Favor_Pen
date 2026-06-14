@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ScreenPen Portable 사용 설명서</title>
+<style>
+  :root{
+    --bg:#f6f7f9; --card:#ffffff; --ink:#1e2329; --sub:#5b6573;
+    --line:#e4e8ee; --accent:#3d7dff; --accent2:#1e1e1e; --warn:#c0392b;
+    --code:#eef1f6;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:"Segoe UI","Malgun Gothic",system-ui,sans-serif;line-height:1.7}
+  header{background:linear-gradient(135deg,#1e1e1e,#2b3a55);color:#fff;padding:44px 24px 40px}
+  header .wrap{max-width:960px;margin:0 auto}
+  header h1{margin:0 0 6px;font-size:30px;letter-spacing:-.5px}
+  header p{margin:0;color:#c8d2e0;font-size:15px}
+  header .badge{display:inline-block;margin-top:14px;padding:4px 12px;border-radius:20px;
+    background:rgba(255,255,255,.12);font-size:12px;color:#dbe6f5}
+  .layout{max-width:960px;margin:0 auto;padding:0 24px}
+  nav.toc{position:sticky;top:0;background:var(--bg);padding:14px 0;border-bottom:1px solid var(--line);
+    margin-bottom:8px;font-size:13px;z-index:5}
+  nav.toc a{color:var(--sub);text-decoration:none;margin-right:14px;white-space:nowrap}
+  nav.toc a:hover{color:var(--accent)}
+  section{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:24px 26px;margin:18px 0}
+  h2{font-size:21px;margin:0 0 14px;padding-bottom:10px;border-bottom:2px solid var(--line)}
+  h3{font-size:16px;margin:20px 0 8px}
+  p,li{font-size:14.5px}
+  code,kbd{font-family:Consolas,monospace}
+  kbd{background:var(--accent2);color:#fff;border-radius:5px;padding:2px 7px;font-size:12.5px;
+    box-shadow:0 1px 0 #000;white-space:nowrap}
+  code{background:var(--code);padding:2px 6px;border-radius:4px;font-size:13px}
+  pre{background:#1e1e1e;color:#e6e6e6;padding:14px 16px;border-radius:10px;overflow:auto;font-size:12.5px}
+  table{width:100%;border-collapse:collapse;margin:10px 0;font-size:14px}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:#f0f3f8}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:720px){.grid{grid-template-columns:1fr}}
+  .shot{border:1px solid var(--line);border-radius:10px;background:#2a2a30;padding:10px;text-align:center}
+  .shot img{max-width:100%;border-radius:6px;display:block;margin:0 auto}
+  .shot.tall img{max-height:560px;width:auto}
+  .cap{color:var(--sub);font-size:12.5px;margin-top:8px}
+  .note{background:#eef5ff;border-left:4px solid var(--accent);padding:12px 14px;border-radius:8px;margin:12px 0;font-size:13.5px}
+  .warn{background:#fdeeec;border-left:4px solid var(--warn);padding:12px 14px;border-radius:8px;margin:12px 0;font-size:13.5px}
+  .pill{display:inline-block;background:var(--code);border-radius:6px;padding:1px 8px;font-size:12px;color:var(--sub);margin-left:6px}
+  ul{padding-left:20px} li{margin:3px 0}
+  footer{max-width:960px;margin:10px auto 50px;padding:0 24px;color:var(--sub);font-size:12.5px;text-align:center}
+  .tool-legend li{margin:5px 0}
+  .tool-legend b{color:var(--accent2)}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <h1>🖍️ ScreenPen Portable 사용 설명서</h1>
+    <p>화면 위 어디에든 그리고 주석하는 무설치 항상-위 오버레이 도구 · Windows 10/11</p>
+    <span class="badge">v0.3 · 단일 실행파일 · 설치 불필요</span>
+  </div>
+</header>
+
+<div class="layout">
+<nav class="toc">
+  <a href="#intro">소개</a>
+  <a href="#run">실행·다른PC</a>
+  <a href="#toolbar">툴바</a>
+  <a href="#draw">그리기 도구</a>
+  <a href="#shapes">도형·텍스트·번호</a>
+  <a href="#modes">모드·효과</a>
+  <a href="#timer">타이머</a>
+  <a href="#halo">마우스 하이라이트</a>
+  <a href="#keys">단축키</a>
+  <a href="#tips">팁·주의</a>
+</nav>
+
+<section id="intro">
+  <h2>1. 제품 소개</h2>
+  <p>ScreenPen Portable은 바탕화면·발표 슬라이드·영상·웹·앱 <b>어떤 화면 위에든</b> 즉시 펜·도형·텍스트로 주석을 그리는 도구입니다. 필요하면 화면을 <b>통과(click-through)</b>시켜 아래 앱을 그대로 조작할 수 있고, 설치 없이 <b>실행파일 하나</b>로 동작합니다.</p>
+  <ul>
+    <li>펜 · 하이라이터 · 지우개, 색상 · 굵기 자유 설정</li>
+    <li>도형(직선·화살표·사각형·타원) · 텍스트 · 번호 태그</li>
+    <li>화이트보드/블랙보드 · 고스트 모드 · 페이딩 잉크 · 마우스 하이라이트 · 돋보기 · 타이머</li>
+    <li>실행취소/다시, 스크린샷(PNG+클립보드), 트레이 상주, 설정 자동 저장</li>
+    <li><b>듀얼·다중 모니터</b> 지원</li>
+  </ul>
+</section>
+
+<section id="run">
+  <h2>2. 실행 &amp; 다른 PC에서 사용하기</h2>
+  <p>이 앱은 <b>무설치(Portable)</b>입니다. 실행파일을 더블클릭만 하면 됩니다. 설치·관리자 권한·레지스트리 변경이 필요 없습니다.</p>
+
+  <h3>두 가지 배포 형태</h3>
+  <table>
+    <tr><th>형태</th><th>크기</th><th>특징</th><th>추천</th></tr>
+    <tr>
+      <td><b>자체 포함</b><br>(self-contained)</td>
+      <td>약 <b>71&nbsp;MB</b></td>
+      <td>.NET 런타임까지 내장 → <b>아무 PC·USB에서 바로</b> 실행</td>
+      <td>처음 보는 PC, USB 휴대</td>
+    </tr>
+    <tr>
+      <td><b>런타임 의존</b><br>(framework-dependent)</td>
+      <td>약 <b>1.6&nbsp;MB</b></td>
+      <td>가볍지만 대상 PC에 <b>.NET 9 Desktop Runtime</b> 필요(1회 설치)</td>
+      <td>내 PC들, 용량이 중요할 때</td>
+    </tr>
+  </table>
+  <div class="note">용량이 부담되면 <b>1.6&nbsp;MB</b> 버전을 쓰고, 대상 PC에 .NET 9 데스크톱 런타임만 한 번 깔면 됩니다(무료, MS 공식). 처음 보는 PC라면 <b>71&nbsp;MB</b> 자체 포함 버전이 가장 확실합니다. WPF 앱은 트리밍을 지원하지 않아 자체 포함을 더 줄이기는 어렵습니다.</div>
+
+  <h3>옮겨서 실행하는 순서</h3>
+  <ol>
+    <li><code>ScreenPenPortable.exe</code> <b>한 개</b>를 USB나 다른 PC 폴더(바탕화면 등)에 복사</li>
+    <li>더블클릭 → 바로 실행. 트레이(작업표시줄 우측)에 아이콘이 상주합니다.</li>
+    <li>설정 <code>settings.json</code>은 <b>exe 옆에 자동 생성</b> → USB에 넣으면 설정도 함께 이동합니다.</li>
+  </ol>
+  <div class="warn">⚠️ <b>처음 실행 시 SmartScreen 경고</b>가 뜰 수 있습니다(서명 안 된 exe). <b>"추가 정보 → 실행"</b>을 누르면 됩니다(한 번만). 동작 환경은 <b>Windows 10(1809+) / 11, 64비트</b>입니다.</div>
+
+  <h3>직접 빌드(개발자용)</h3>
+  <pre>dotnet publish src/ScreenPenPortable -c Release -r win-x64 --self-contained true `
+  -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true `
+  -p:EnableCompressionInSingleFile=true</pre>
+  <p class="cap">런타임 의존(소형)으로 만들려면 <code>--self-contained false</code> 로 바꾸면 됩니다.</p>
+</section>
+
+<section id="toolbar">
+  <h2>3. 화면 구성 — 플로팅 툴바</h2>
+  <div class="grid">
+    <div class="shot tall">
+      <img src="img/toolbar.png" alt="세로형 플로팅 툴바">
+      <div class="cap">세로 2열 플로팅 툴바 (드래그로 이동 가능)</div>
+    </div>
+    <div>
+      <h3>맨 위 점 6개(⠿) = 이동 핸들</h3>
+      <p>이 부분을 잡고 끌면 툴바를 <b>어디로든(다른 모니터 포함)</b> 옮길 수 있습니다. 위치는 종료 시 저장됩니다.</p>
+      <ul class="tool-legend">
+        <li><b>✏️ 펜</b> / <b>🖍️ 하이라이터</b> / <b>⌫ 지우개</b></li>
+        <li><b>╱ 직선</b> / <b>↗ 화살표</b> / <b>▭ 사각형</b> / <b>◯ 타원</b> / <b>◑ 채움순환</b></li>
+        <li><b>T 텍스트</b> / <b>① 번호</b></li>
+        <li><b>색상 스와치</b> (클릭으로 색 선택)</li>
+        <li><b>굵기 슬라이더</b> (텍스트 도구일 땐 글자 크기)</li>
+        <li><b>↩ 실행취소</b> / <b>↪ 다시</b> / <b>🗑 전체지우기</b></li>
+        <li><b>📷 스크린샷</b> / <b>✋ 그리기·통과 전환</b></li>
+        <li><b>⬜ 화이트보드</b> / <b>👻 고스트</b> / <b>🔍 돋보기</b> / <b>🌫 페이딩</b> / <b>◎ 하이라이트</b> / <b>⏱ 타이머</b></li>
+        <li><b style="color:#c0392b">✕ 종료</b></li>
+      </ul>
+      <div class="note">버튼이 파랗게 강조되면 현재 <b>켜져 있는/선택된</b> 상태입니다.</div>
+    </div>
+  </div>
+</section>
+
+<section id="draw">
+  <h2>4. 그리기 도구</h2>
+  <h3>펜 · 하이라이터 · 지우개</h3>
+  <ul>
+    <li><b>펜</b> <span class="pill">Ctrl+Alt+1</span> — 자유 곡선. 색·굵기는 툴바에서.</li>
+    <li><b>하이라이터</b> <span class="pill">Ctrl+Alt+2</span> — 반투명 형광 강조.</li>
+    <li><b>지우개</b> <span class="pill">Ctrl+Alt+3</span> — 닿은 스트로크를 통째로 삭제.</li>
+    <li><b>전체 지우기</b> <span class="pill">Ctrl+Alt+E</span> 또는 <kbd>Delete</kbd> — 모든 주석 제거(실행취소로 복구 가능).</li>
+  </ul>
+  <div class="note">도구마다 <b>색·굵기를 따로 기억</b>합니다(예: 펜은 빨강 3px, 하이라이터는 노랑 18px). 색은 스와치 클릭, 굵기는 슬라이더로 조절합니다.</div>
+</section>
+
+<section id="shapes">
+  <h2>5. 도형 · 텍스트 · 번호</h2>
+  <h3>도형 (직선/화살표/사각형/타원)</h3>
+  <ul>
+    <li>툴바에서 도형을 고르고 <b>드래그</b>하면 그려집니다(드래그 중 미리보기 표시).</li>
+    <li><kbd>Shift</kbd> 보정: 직선·화살표는 <b>15° 각도 스냅</b>, 사각형·타원은 <b>정사각형·정원</b>.</li>
+    <li><b>◑ 채움 순환</b> 버튼: 없음 → 컬러 채움 → 외곽선 → 흰색 채움 → 검정 채움 (사각형·타원에 적용).</li>
+  </ul>
+  <h3>텍스트 <span class="pill">툴바 T</span></h3>
+  <ul>
+    <li>클릭한 자리에 입력창이 열립니다. <kbd>Enter</kbd> 확정, <kbd>Shift+Enter</kbd> 줄바꿈, <kbd>Esc</kbd> 취소.</li>
+    <li>텍스트 도구를 고르면 굵기 슬라이더가 <b>글자 크기(8~200)</b>로 바뀝니다.</li>
+  </ul>
+  <h3>번호 태그 <span class="pill">툴바 ①</span></h3>
+  <ul>
+    <li>클릭할 때마다 1, 2, 3… 번호가 매겨진 원형 태그를 찍습니다(절차 설명용).</li>
+    <li><b>전체 지우기</b>를 하면 번호가 다시 <b>1부터</b> 시작합니다.</li>
+  </ul>
+</section>
+
+<section id="modes">
+  <h2>6. 모드 &amp; 효과</h2>
+  <h3>그리기 ↔ 통과(click-through) <span class="pill">Ctrl+Alt+D</span></h3>
+  <p><b>그리기 모드</b>에서는 화면에 그림이 그려지고, <b>통과 모드</b>에서는 입력이 아래 앱으로 통과되어 그려둔 주석을 유지한 채 데스크톱을 조작할 수 있습니다. (✋ 버튼으로도 전환)</p>
+
+  <h3>고스트 모드 <span class="pill">Ctrl+Alt+G</span></h3>
+  <p>툴바를 숨기고 <b>단축키만</b>으로 사용합니다. 발표·녹화 시 화면을 깔끔하게.
+    <span class="warn" style="display:inline-block;padding:2px 8px;margin:0">돌아오기: <kbd>Ctrl+Alt+G</kbd> 다시 누르기</span></p>
+
+  <h3>화이트보드 / 블랙보드 <span class="pill">Ctrl+Alt+W</span></h3>
+  <p>불투명 흰색/검정 배경을 깔아 그 위에 주석합니다. 누를 때마다 <b>끄기 → 화이트 → 블랙 → 끄기</b> 순환.</p>
+
+  <h3>페이딩 잉크 <span class="pill">Ctrl+Alt+F</span></h3>
+  <p>그린 선이 잠시 후 <b>자동으로 사라집니다</b>(임시 강조용). 끄면 남아있던 선은 원래 진하기로 복원됩니다.</p>
+
+  <h3>돋보기 / 줌 <span class="pill">Ctrl+Alt+M</span></h3>
+  <p>커서 주변 화면을 확대해 보여 줍니다. 같은 키나 🔍 버튼으로 끕니다(토글).</p>
+</section>
+
+<section id="timer">
+  <h2>7. 타이머 <span class="pill">Ctrl+Alt+C</span></h2>
+  <div class="grid">
+    <div class="shot">
+      <img src="img/timer.png" alt="화면 중앙 카운트다운 타이머">
+      <div class="cap">화면 중앙 카운트다운 (메이플스토리체 Bold)</div>
+    </div>
+    <div>
+      <p>발표·시험·휴식 시간 표시용 큰 <b>카운트다운 타이머</b>입니다. 화면 정중앙에 표시됩니다.</p>
+      <ul>
+        <li><b>시간 설정</b>: <code>−1분 / +1분 / −10초 / +10초</code></li>
+        <li><b>글자 크기</b>: <code>A− / A+</code> (변경해도 중앙 유지)</li>
+        <li><b>▶ 시작 / ⏸ 일시정지 / ↺ 리셋 / ✕ 닫기</b></li>
+        <li>0에 도달하면 <b>빨간색 점멸 + 알림음</b></li>
+        <li>설정한 시간·글자 크기는 저장됩니다.</li>
+      </ul>
+      <p class="cap">패널 빈 곳을 드래그하면 위치를 옮길 수 있습니다(옮기면 자동 중앙정렬 해제).</p>
+    </div>
+  </div>
+</section>
+
+<section id="halo">
+  <h2>8. 마우스 하이라이트(헤일로) <span class="pill">Ctrl+Alt+H</span></h2>
+  <div class="grid">
+    <div>
+      <p>마우스 커서 주위에 <b>강조 원</b>을 띄워 발표 중 포인터 위치를 부각합니다. 같은 키나 ◎ 버튼으로 켜고 끕니다.</p>
+      <h3>색상 · 크기 바꾸기</h3>
+      <ul>
+        <li>툴바의 <b>◎ 버튼을 <u>우클릭</u></b> 하면 설정창이 열립니다.</li>
+        <li><b>색상</b> 10종 스와치 + <b>크기</b> 슬라이더(8~100px)</li>
+        <li>바꾸면 <b>즉시 적용</b>되고 설정에 저장됩니다.</li>
+      </ul>
+    </div>
+    <div class="shot">
+      <img src="img/halo-settings.png" alt="마우스 하이라이트 설정창">
+      <div class="cap">◎ 우클릭 → 색상·크기 설정</div>
+    </div>
+  </div>
+</section>
+
+<section id="keys">
+  <h2>9. 전역 단축키</h2>
+  <p>아래 키는 <b>다른 앱을 쓰는 중에도</b> 동작합니다(전역). 모두 <kbd>Ctrl</kbd>+<kbd>Alt</kbd>와 함께.</p>
+  <table>
+    <tr><th>키</th><th>동작</th><th>키</th><th>동작</th></tr>
+    <tr><td><kbd>Ctrl+Alt+D</kbd></td><td>그리기 ↔ 통과</td><td><kbd>Ctrl+Alt+S</kbd></td><td>스크린샷</td></tr>
+    <tr><td><kbd>Ctrl+Alt+1/2/3</kbd></td><td>펜 / 하이라이터 / 지우개</td><td><kbd>Ctrl+Alt+T</kbd></td><td>툴바 표시/숨김</td></tr>
+    <tr><td><kbd>Ctrl+Alt+Z / Y</kbd></td><td>실행취소 / 다시</td><td><kbd>Ctrl+Alt+W</kbd></td><td>화이트보드/블랙보드</td></tr>
+    <tr><td><kbd>Ctrl+Alt+E</kbd></td><td>전체 지우기</td><td><kbd>Ctrl+Alt+G</kbd></td><td>고스트 모드</td></tr>
+    <tr><td><kbd>Ctrl+Alt+M</kbd></td><td>돋보기</td><td><kbd>Ctrl+Alt+F</kbd></td><td>페이딩 잉크</td></tr>
+    <tr><td><kbd>Ctrl+Alt+H</kbd></td><td>마우스 하이라이트</td><td><kbd>Ctrl+Alt+C</kbd></td><td>타이머</td></tr>
+    <tr><td><kbd>Ctrl+Alt+Q</kbd></td><td>종료</td><td><kbd>Esc</kbd></td><td>그리던 도형/텍스트 취소</td></tr>
+    <tr><td><kbd>Delete</kbd></td><td>전체 지우기</td><td><kbd>Shift</kbd>+드래그</td><td>도형 각도/비율 보정</td></tr>
+  </table>
+  <div class="note">도형 4종 · 텍스트 · 번호 · 채움 순환은 <b>툴바 버튼</b>으로 선택합니다.</div>
+</section>
+
+<section id="tips">
+  <h2>10. 팁 &amp; 주의</h2>
+  <ul>
+    <li><b>그리기 모드에선 다른 앱 클릭이 안 됩니다.</b> 오버레이가 화면 입력을 잡기 때문 — <kbd>Ctrl+Alt+D</kbd>로 통과 모드로 바꾸면 아래 앱을 조작할 수 있고 그려둔 주석은 유지됩니다.</li>
+    <li><b>종료</b>는 <kbd>Ctrl+Alt+Q</kbd> · 트레이 아이콘 우클릭 · 툴바 <b>✕</b>. (<kbd>Esc</kbd>는 실수 종료 방지를 위해 더 이상 앱을 닫지 않습니다.)</li>
+    <li><b>멀티모니터</b>: 모든 화면에 그릴 수 있고, 모니터를 추가/제거하면 자동으로 재배치됩니다.</li>
+    <li><b>설정</b>(색·굵기·핫키 결과·툴바 위치·타이머·하이라이트 등)은 exe 옆 <code>settings.json</code>에 저장되어 USB로 함께 이동합니다.</li>
+    <li>일부 단축키가 다른 앱과 겹쳐 등록에 실패하면 <b>트레이 아이콘 툴팁</b>에 알려줍니다.</li>
+  </ul>
+</section>
+
+</div>
+<footer>
+  ScreenPen Portable · Epic Pen 호환 기능 클론 · 무설치 화면 주석 도구<br>
+  타이머 글꼴: 넥슨 메이플스토리 서체(개인·상업 무료) · 본 문서의 스크린샷은 실제 실행 화면입니다.
+</footer>
+</body>
+</html>
