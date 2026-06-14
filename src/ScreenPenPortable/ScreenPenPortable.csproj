@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>ScreenPenPortable</RootNamespace>
+    <AssemblyName>ScreenPenPortable</AssemblyName>
+    <Product>ScreenPen Portable</Product>
+    <Version>0.1.0</Version>
+    <Description>무설치 화면 주석 도구 (Epic Pen 호환 기능 클론)</Description>
+  </PropertyGroup>
+
+  <!--
+    무설치(Portable) 단일 실행파일 배포 명령은 README.md 참고:
+    dotnet publish -c Release -r win-x64 (self-contained + PublishSingleFile)
+  -->
+
+</Project>
