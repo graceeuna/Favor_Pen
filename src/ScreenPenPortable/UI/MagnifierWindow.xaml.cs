@@ -52,6 +52,15 @@ public partial class MagnifierWindow : Window
     [DllImport("user32.dll")]
     private static extern int GetSystemMetrics(int nIndex);
 
+    // 돋보기 창을 OS 레벨에서도 완전 클릭 통과로 만든다(WPF IsHitTestVisible=False 만으로는
+    // 최상위 창이 여전히 클릭을 흡수하므로, 돋보기가 툴바 버튼 위를 덮어 끄기 클릭을 막는 것을 방지).
+    private const int GWL_EXSTYLE = -20;
+    private const int WS_EX_TRANSPARENT = 0x00000020;
+    private const int WS_EX_TOOLWINDOW = 0x00000080;
+
+    [DllImport("user32.dll")] private static extern int GetWindowLong(IntPtr h, int i);
+    [DllImport("user32.dll")] private static extern int SetWindowLong(IntPtr h, int i, int v);
+
     // 가상 화면(모든 모니터 경계) 메트릭.
     private const int SM_XVIRTUALSCREEN = 76, SM_YVIRTUALSCREEN = 77,
                       SM_CXVIRTUALSCREEN = 78, SM_CYVIRTUALSCREEN = 79;
@@ -81,7 +90,14 @@ public partial class MagnifierWindow : Window
         };
         _timer.Tick += OnTick;
 
-        SourceInitialized += (_, _) => UpdateDpiScale();
+        SourceInitialized += (_, _) =>
+        {
+            UpdateDpiScale();
+            // OS 레벨 클릭 통과 + 작업표시줄/Alt+Tab 숨김.
+            IntPtr hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+            int ex = GetWindowLong(hwnd, GWL_EXSTYLE);
+            SetWindowLong(hwnd, GWL_EXSTYLE, ex | WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW);
+        };
         Closed += OnClosedCleanup;
     }
 

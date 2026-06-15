@@ -35,14 +35,13 @@
 - ✅ **그리기 / 통과(click-through) 모드 토글** — `Ctrl+Alt+D` (통과 모드에서 `WS_EX_TRANSPARENT`) (FR-09)
 - ✅ **화이트보드 / 블랙보드** — 불투명 배경 순환, 특정 모니터 지정 가능 (FR-16)
 - ✅ **고스트 모드** — 툴바를 숨기고 전역 단축키만으로 사용 (FR-19)
-- ✅ **페이딩 잉크** — 그린 뒤 일정 시간 후 자동 사라짐 (FR-20)
 - ✅ **하이라이트 커서(헤일로)** — 커서 위치 강조 원 (FR-21)
 - ✅ **돋보기 / 줌** — 커서 주변 화면 확대 창 (FR-24)
 - ✅ **도구별 독립 색상·굵기 기억** (FR-18)
 
 ### 시스템
 - ✅ 플로팅 툴바(드래그 이동) (FR-08) · 트레이 상주(우클릭 메뉴) (FR-12)
-- ✅ 스크린샷 캡처 → PNG 저장 + 클립보드 복사(툴바/돋보기 자동 숨김 후 촬영) (FR-11)
+- ✅ 캡처 — 화면 카메라 버튼/`Ctrl+Alt+S` → **Windows 캡처 도구(Snip) 연동** (FR-11)
 - ✅ 무설치 설정 영속성 — 실행파일 옆 `settings.json` (FR-13)
 - ✅ 전역 단축키 + 작업표시줄/Alt+Tab 숨김(`WS_EX_TOOLWINDOW`) (FR-10)
 
@@ -50,11 +49,11 @@
 | 키 | 동작 | 키 | 동작 |
 |---|---|---|---|
 | `D` | 그리기 ↔ 통과 모드 | `S` | 스크린샷 |
-| `1` / `2` / `3` | 펜 / 하이라이터 / 지우개 | `T` | 툴바 표시/숨김 |
+| `1` / `2` / `3` | 펜 / 하이라이터 / 지우개 | `C` | 타이머 |
 | `Z` / `Y` | Undo / Redo | `W` | 화이트보드/블랙보드 순환 |
 | `E` | 전체 지우기 | `G` | 고스트 모드 |
 | `Q` | 종료 | `M` | 돋보기 |
-| `F` | 페이딩 잉크 | `H` | 하이라이트 커서(헤일로) |
+| `H` | 하이라이트 커서(헤일로) | | |
 
 > 도형·텍스트·넘버링 도구와 도형 채움 순환은 플로팅 툴바에서 선택합니다.
 
@@ -82,7 +81,7 @@ dotnet publish src/ScreenPenPortable -c Release -r win-x64 --self-contained true
 | **M0** | 투명 오버레이 + 클릭관통 토글 PoC | ✅ |
 | **M1 (MVP)** | 하이라이터·지우개·색상·굵기·Undo/Redo·툴바·스크린샷·트레이·설정영속성 + 듀얼/다중 모니터(필수) | ✅ |
 | **M2 (v1.0)** | 도형·텍스트·화이트보드/블랙보드·고스트 모드·도구별 기억 | ✅ |
-| **M3 (v2)** | 페이딩 잉크·하이라이트 커서·넘버링·도형 채움순환·돋보기 | ✅ |
+| **M3 (v2)** | 하이라이트 커서·넘버링·도형 채움순환·돋보기 | ✅ |
 
 ## 프로젝트 구조
 ```
@@ -96,7 +95,7 @@ screen-pen-portable/
       ├─ MainWindow.xaml(.cs)     # 통합 허브: 오버레이 + 도구 디스패치 + 핫키 + 모드
       ├─ Settings/                # AppSettings, SettingsStore (settings.json)
       ├─ Drawing/                 # UndoStack(공유 타임라인), UndoRedoManager(스트로크), ObjectLayer(도형/텍스트/넘버)
-      ├─ Services/                # ScreenshotService, TrayService, WhiteboardController, FadingInkService
+      ├─ Services/                # ScreenshotService, TrayService, WhiteboardController
       └─ UI/                      # ToolbarWindow(플로팅 툴바), HighlightCursor(헤일로), MagnifierWindow(돋보기)
 ```
 

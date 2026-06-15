@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows;
@@ -40,8 +41,8 @@ public partial class MainWindow : Window
 
     private enum Hk
     {
-        Toggle = 1, Pen, Highlighter, Eraser, Undo, Redo, Clear, Screenshot, Toolbar, Exit,
-        Whiteboard, Ghost, Magnifier, Fade, Halo, Timer
+        Toggle = 1, Pen, Highlighter, Eraser, Undo, Redo, Clear, Screenshot, Exit,
+        Whiteboard, Ghost, Magnifier, Halo, Timer
     }
 
     private IntPtr _hwnd;
@@ -57,7 +58,6 @@ public partial class MainWindow : Window
     private ObjectLayer? _objects;
     private WhiteboardController? _whiteboard;
     private HighlightCursor? _halo;
-    private FadingInkService? _fade;
     private MagnifierWindow? _magnifier;
     private TimerWindow? _timerWin;
     private HaloSettingsWindow? _haloSettings;
@@ -101,13 +101,12 @@ public partial class MainWindow : Window
         _objects = new ObjectLayer(InkSurface, OverlayLayer, _undo);
         _whiteboard = new WhiteboardController(BackdropLayer);
         _halo = new HighlightCursor(OverlayLayer, this);
-        _fade = new FadingInkService(InkSurface, _strokeUndo.RemoveStrokeWithoutHistory);
         _undo.Changed += () => _toolbar?.SetUndoRedoEnabled(_undo.CanUndo, _undo.CanRedo);
 
         // 트레이 상주
         _tray = new TrayService("ScreenPen Portable");
         _tray.ToggleRequested += () => Dispatcher.Invoke(ToggleToolbar);
-        _tray.ScreenshotRequested += () => Dispatcher.Invoke(TakeScreenshot);
+        _tray.ScreenshotRequested += () => Dispatcher.Invoke(LaunchWindowsSnip);
         _tray.ClearRequested += () => Dispatcher.Invoke(ClearAllAnnotations);
         _tray.ExitRequested += () => Dispatcher.Invoke(Close);
 
@@ -126,15 +125,14 @@ public partial class MainWindow : Window
         _toolbar.UndoRequested += () => _undo.Undo();
         _toolbar.RedoRequested += () => _undo.Redo();
         _toolbar.ClearRequested += ClearAllAnnotations;
-        _toolbar.ScreenshotRequested += TakeScreenshot;
+        _toolbar.ScreenshotRequested += LaunchWindowsSnip;
         _toolbar.PassThroughToggled += TogglePassThrough;
         _toolbar.ExitRequested += Close;
         // M2/M3 명령
         _toolbar.FillCycleRequested += CycleFill;
         _toolbar.WhiteboardToggleRequested += ToggleWhiteboard;
-        _toolbar.GhostToggleRequested += ToggleGhost;
         _toolbar.MagnifierToggleRequested += ToggleMagnifier;
-        _toolbar.FadeToggleRequested += ToggleFade;
+        _toolbar.MagnifierOffRequested += MagnifierOff;
         _toolbar.HaloToggleRequested += ToggleHalo;
         _toolbar.HaloSettingsRequested += OpenHaloSettings;
         _toolbar.TimerToggleRequested += ToggleTimer;
@@ -147,16 +145,12 @@ public partial class MainWindow : Window
         ApplyTool();
         _toolbar.SetActiveTool(_tool);
         _toolbar.SetThickness(GetToolWidth(_tool));
+        RefreshCurrentColor();
         _toolbar.SetPassThrough(false);
         _toolbar.SetFillMode(_settings.LastFillMode);
         _toolbar.SetUndoRedoEnabled(_undo.CanUndo, _undo.CanRedo);
 
-        // 영속 토글 복원(FR-18/20/21)
-        if (_settings.FadingInkEnabled)
-        {
-            _fade.Enable(_settings.FadeSeconds);
-            _toolbar.SetFadeActive(true);
-        }
+        // 영속 토글 복원(FR-18/21)
         if (_settings.HighlightCursorEnabled)
         {
             _halo.Enable(ParseColor(_settings.HighlightCursorColor), _settings.HighlightCursorRadius);
@@ -263,6 +257,10 @@ public partial class MainWindow : Window
 
     private void SetTool(ToolKind t)
     {
+        // 도구를 고르면 = 그리려는 의도. 마우스(통과) 모드였다면 그리기 모드로 자동 복귀
+        // → 펜 옆 마우스 버튼으로 마우스를 쓰다가 도구를 누르면 바로 그릴 수 있다.
+        if (_passThrough) TogglePassThrough();
+
         // 도구를 바꾸기 전 진행 중이던 텍스트는 확정하고 도형 드래그는 취소한다.
         _objects?.EndActiveTextEditing(true);
         _objects?.CancelActiveDrag();
@@ -274,7 +272,11 @@ public partial class MainWindow : Window
         // 텍스트 도구는 굵기 슬라이더를 폰트 크기(8~200)로, 그 외 도구는 1~40 으로.
         _toolbar?.SetThicknessRange(t == ToolKind.Text ? 8 : 1, t == ToolKind.Text ? 200 : 40);
         _toolbar?.SetThickness(GetToolWidth(t));
+        RefreshCurrentColor();
     }
+
+    /// <summary>현재 활성 도구의 색을 툴바(현재 색 막대·스와치 선택 링)에 반영한다.</summary>
+    private void RefreshCurrentColor() => _toolbar?.SetCurrentColor(ParseColor(GetToolColorHex(_tool)));
 
     private void SetColor(Color c)
     {
@@ -295,6 +297,7 @@ public partial class MainWindow : Window
             SetToolColorHex(_tool, c.ToString());
         }
         ApplyTool();
+        RefreshCurrentColor();
     }
 
     private void SetThickness(double w)
@@ -350,31 +353,23 @@ public partial class MainWindow : Window
             });
     }
 
-    // ── 스크린샷 ───────────────────────────────────────────
-    private void TakeScreenshot()
+    // ── 캡처: Windows 캡처 도구(편집기 포함) 연동 ───────────
+    /// <summary>화면 카메라 버튼 / Ctrl+Alt+S → Windows 캡처 도구를 띄운다.
+    /// 단순 클립(ms-screenclip)이 아니라 <b>캡처 후 이미지를 편집할 수 있는 편집기 창이 유지되는</b>
+    /// 캡처 도구를 연다: 도구에서 '새로 만들기'로 영역을 캡처하면 그 이미지가 편집기에 들어오고
+    /// 창이 그대로 남아 펜·형광펜 등으로 수정·저장할 수 있다.
+    /// 구형 Snipping Tool 실행이 막히면 최신 Snip &amp; Sketch(ms-screensketch)로 폴백한다.</summary>
+    private void LaunchWindowsSnip()
     {
-        bool tbVisible = _toolbar?.IsVisible ?? false;
-        if (tbVisible) _toolbar!.Hide();
-        bool magVisible = _magnifier?.IsVisible ?? false;
-        if (magVisible) _magnifier!.HideMagnifier();
-
-        // 툴바/돋보기가 화면에서 사라진 뒤 캡처(논블로킹).
-        var timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(150) };
-        timer.Tick += (s, e) =>
+        try
         {
-            timer.Stop();
-            try
-            {
-                string? dir = string.IsNullOrEmpty(_settings.LastScreenshotDir) ? null : _settings.LastScreenshotDir;
-                string path = ScreenshotService.CaptureVirtualScreenToFileAndClipboard(dir);
-                _settings.LastScreenshotDir = System.IO.Path.GetDirectoryName(path) ?? "";
-                _tray?.SetModeText($"저장됨: {System.IO.Path.GetFileName(path)}");
-            }
-            catch { /* 캡처 실패는 무시 */ }
-            if (tbVisible) _toolbar!.Show();
-            if (magVisible) _magnifier!.ShowMagnifier();
-        };
-        timer.Start();
+            Process.Start(new ProcessStartInfo("snippingtool.exe") { UseShellExecute = true });
+        }
+        catch
+        {
+            try { Process.Start(new ProcessStartInfo("ms-screensketch:") { UseShellExecute = true }); }
+            catch { /* 캡처 도구 실행 실패는 무시 */ }
+        }
     }
 
     // ── 그리기/통과 토글 ───────────────────────────────────
@@ -442,6 +437,7 @@ public partial class MainWindow : Window
     }
 
     // ── 돋보기(FR-24) ──────────────────────────────────────
+    private bool _magnifierOn;
     private void ToggleMagnifier()
     {
         if (_magnifier == null)
@@ -450,8 +446,22 @@ public partial class MainWindow : Window
             _magnifier.SetZoom(_settings.MagnifierZoom);
             _magnifier.SetViewSize(_settings.MagnifierSize);
         }
-        _magnifier.Toggle();
-        _toolbar?.SetMagnifierActive(_magnifier.IsVisible);
+
+        // 명시적 on/off 상태로 토글한다(돋보기가 매 프레임 자기 숨김을 하므로
+        // IsVisible 에 의존하지 않고 한 번 누르면 켜고, 다시 누르면 확실히 끈다).
+        _magnifierOn = !_magnifierOn;
+        if (_magnifierOn) _magnifier.ShowMagnifier();
+        else _magnifier.HideMagnifier();
+        _toolbar?.SetMagnifierActive(_magnifierOn);
+    }
+
+    /// <summary>돋보기 강제 끄기(툴바 돋보기 버튼 우클릭). 좌클릭 토글이 막히는 상황의 확실한 해제 경로.</summary>
+    private void MagnifierOff()
+    {
+        if (!_magnifierOn) return;
+        _magnifierOn = false;
+        _magnifier?.HideMagnifier();
+        _toolbar?.SetMagnifierActive(false);
     }
 
     // ── 타이머(화면 중앙 카운트다운) ──────────────────────
@@ -467,16 +477,6 @@ public partial class MainWindow : Window
         }
         _timerWin.Toggle();
         _toolbar?.SetTimerActive(_timerWin.IsVisible);
-    }
-
-    // ── 페이딩 잉크(FR-20) ─────────────────────────────────
-    private void ToggleFade()
-    {
-        if (_fade == null) return;
-        if (_fade.IsEnabled) _fade.Disable();
-        else _fade.Enable(_settings.FadeSeconds);
-        _settings.FadingInkEnabled = _fade.IsEnabled;
-        _toolbar?.SetFadeActive(_fade.IsEnabled);
     }
 
     // ── 하이라이트 커서/헤일로(FR-21) ──────────────────────
@@ -548,12 +548,10 @@ public partial class MainWindow : Window
         Reg(Hk.Redo, Key.Y);
         Reg(Hk.Clear, Key.E);
         Reg(Hk.Screenshot, Key.S);
-        Reg(Hk.Toolbar, Key.T);
         Reg(Hk.Exit, Key.Q);
         Reg(Hk.Whiteboard, Key.W);
         Reg(Hk.Ghost, Key.G);
         Reg(Hk.Magnifier, Key.M);
-        Reg(Hk.Fade, Key.F);
         Reg(Hk.Halo, Key.H);
         Reg(Hk.Timer, Key.C);
     }
@@ -571,13 +569,11 @@ public partial class MainWindow : Window
             case Hk.Undo: _undo.Undo(); break;
             case Hk.Redo: _undo.Redo(); break;
             case Hk.Clear: ClearAllAnnotations(); break;
-            case Hk.Screenshot: TakeScreenshot(); break;
-            case Hk.Toolbar: ToggleToolbar(); break;
+            case Hk.Screenshot: LaunchWindowsSnip(); break;
             case Hk.Exit: Close(); break;
             case Hk.Whiteboard: ToggleWhiteboard(); break;
             case Hk.Ghost: ToggleGhost(); break;
             case Hk.Magnifier: ToggleMagnifier(); break;
-            case Hk.Fade: ToggleFade(); break;
             case Hk.Halo: ToggleHalo(); break;
             case Hk.Timer: ToggleTimer(); break;
             default: handled = false; break;
@@ -626,7 +622,6 @@ public partial class MainWindow : Window
             foreach (Hk id in Enum.GetValues<Hk>())
                 UnregisterHotKey(_hwnd, (int)id);
 
-        _fade?.Disable();
         _halo?.Disable();
         _magnifier?.Close();
         _timerWin?.Close();

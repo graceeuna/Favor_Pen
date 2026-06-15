@@ -19,11 +19,19 @@ public partial class ToolbarWindow : Window
         (Brush)new BrushConverter().ConvertFromString("#FF3D7DFF")!;
     private static readonly Brush IdleBrush = Brushes.Transparent;
 
+    /// <summary>현재 색과 일치하는 스와치를 강조하는 선택 링 / 평상시 테두리.</summary>
+    private static readonly Brush SelectedSwatchBrush = Brushes.White;
+    private static readonly Brush DefaultSwatchBrush =
+        new SolidColorBrush(Color.FromArgb(0x55, 0xFF, 0xFF, 0xFF));
+
     /// <summary>SetThickness 호출 중 ThicknessChanged 재발생을 막는 가드.</summary>
     private bool _suppressThicknessEvent;
 
     /// <summary>현재 통과(클릭-스루) 모드 여부.</summary>
     private bool _passThrough;
+
+    /// <summary>현재 활성 도구(넘버링 등 토글 동작 판정용).</summary>
+    private ToolKind _activeTool = ToolKind.Pen;
 
     // ── 공개 이벤트(지휘자가 구독) ────────────────────────────────
     public event Action<ToolKind>? ToolSelected;
@@ -38,9 +46,8 @@ public partial class ToolbarWindow : Window
     // ── M2/M3 추가 이벤트 ─────────────────────────────────────────
     public event Action? FillCycleRequested;        // FR-23 도형 채움 순환
     public event Action? WhiteboardToggleRequested; // FR-16 화이트/블랙보드 순환
-    public event Action? GhostToggleRequested;       // FR-19 고스트 모드
     public event Action? MagnifierToggleRequested;   // FR-24 돋보기
-    public event Action? FadeToggleRequested;        // FR-20 페이딩 잉크
+    public event Action? MagnifierOffRequested;      // 돋보기 강제 끄기(우클릭)
     public event Action? HaloToggleRequested;        // FR-21 하이라이트 커서
     public event Action? HaloSettingsRequested;      // 헤일로 색·크기 설정(우클릭)
     public event Action? TimerToggleRequested;       // 타이머(카운트다운)
@@ -72,15 +79,38 @@ public partial class ToolbarWindow : Window
         ToolSelected?.Invoke(tool);
     }
 
-    private void OnPenClick(object sender, RoutedEventArgs e) => SelectTool(ToolKind.Pen);
-    private void OnHighlighterClick(object sender, RoutedEventArgs e) => SelectTool(ToolKind.Highlighter);
+    private void OnPenClick(object sender, RoutedEventArgs e) => SelectWriting(ToolKind.Pen);
+    private void OnHighlighterClick(object sender, RoutedEventArgs e) => SelectWriting(ToolKind.Highlighter);
     private void OnEraserClick(object sender, RoutedEventArgs e) => SelectTool(ToolKind.Eraser);
-    private void OnLineClick(object sender, RoutedEventArgs e) => SelectTool(ToolKind.Line);
-    private void OnArrowClick(object sender, RoutedEventArgs e) => SelectTool(ToolKind.Arrow);
-    private void OnRectClick(object sender, RoutedEventArgs e) => SelectTool(ToolKind.Rectangle);
-    private void OnEllipseClick(object sender, RoutedEventArgs e) => SelectTool(ToolKind.Ellipse);
-    private void OnTextClick(object sender, RoutedEventArgs e) => SelectTool(ToolKind.Text);
-    private void OnNumberClick(object sender, RoutedEventArgs e) => SelectTool(ToolKind.Number);
+    private void OnLineClick(object sender, RoutedEventArgs e) => SelectShape(ToolKind.Line);
+    private void OnArrowClick(object sender, RoutedEventArgs e) => SelectShape(ToolKind.Arrow);
+    private void OnRectClick(object sender, RoutedEventArgs e) => SelectShape(ToolKind.Rectangle);
+    private void OnEllipseClick(object sender, RoutedEventArgs e) => SelectShape(ToolKind.Ellipse);
+    private void OnTextClick(object sender, RoutedEventArgs e) => SelectWriting(ToolKind.Text);
+
+    /// <summary>넘버링 태그도 토글: 이미 넘버링이면 다시 누르면 해제(펜으로 복귀).</summary>
+    private void OnNumberClick(object sender, RoutedEventArgs e) =>
+        SelectTool(_activeTool == ToolKind.Number ? ToolKind.Pen : ToolKind.Number);
+
+    /// <summary>펜 묶음 버튼: 펜·형광펜·텍스트 선택 팝업을 열고 닫는다.</summary>
+    private void OnPenGroupClick(object sender, RoutedEventArgs e) => PenPopup.IsOpen = !PenPopup.IsOpen;
+
+    /// <summary>펜 팝업에서 쓰기 도구(펜·형광펜·텍스트)를 고르면 선택하고 팝업을 닫는다.</summary>
+    private void SelectWriting(ToolKind tool)
+    {
+        SelectTool(tool);
+        PenPopup.IsOpen = false;
+    }
+
+    /// <summary>도형 묶음 버튼: 도형 선택 팝업을 열고 닫는다.</summary>
+    private void OnShapesClick(object sender, RoutedEventArgs e) => ShapesPopup.IsOpen = !ShapesPopup.IsOpen;
+
+    /// <summary>도형 팝업에서 도형 하나를 고르면 해당 도형 도구를 선택하고 팝업을 닫는다.</summary>
+    private void SelectShape(ToolKind tool)
+    {
+        SelectTool(tool);
+        ShapesPopup.IsOpen = false;
+    }
 
     private void OnFillClick(object sender, RoutedEventArgs e) => FillCycleRequested?.Invoke();
 
@@ -90,19 +120,48 @@ public partial class ToolbarWindow : Window
     private void OnClearClick(object sender, RoutedEventArgs e) => ClearRequested?.Invoke();
     private void OnScreenshotClick(object sender, RoutedEventArgs e) => ScreenshotRequested?.Invoke();
 
-    private void OnPassThroughClick(object sender, RoutedEventArgs e)
+    /// <summary>펜 옆 마우스 버튼: 펜↔마우스(통과) 모드를 즉시 전환.
+    /// 토글 자체는 지휘자가 실제 모드를 바꾼 뒤 SetPassThrough 로 확정하므로
+    /// 여기서는 의도만 알리고 버튼 강조는 낙관적으로 즉시 갱신한다.</summary>
+    private void OnMouseModeClick(object sender, RoutedEventArgs e)
     {
-        // 토글 자체는 지휘자가 실제 모드를 바꾼 뒤 SetPassThrough 로 확정한다.
-        // 여기서는 의도만 알리고, 라벨은 즉시 낙관적으로 갱신한다.
         SetPassThrough(!_passThrough);
         PassThroughToggled?.Invoke();
     }
 
+    /// <summary>눈 버튼: 툴바 본체(CollapsibleContent)를 접거나 펼친다.
+    /// 접으면 드래그 핸들과 눈 버튼만 남아 화면을 거의 가리지 않는다(SizeToContent 가 창을 줄임).</summary>
+    private void OnCollapseClick(object sender, RoutedEventArgs e)
+    {
+        bool collapsing = CollapsibleContent.Visibility == Visibility.Visible;
+        CollapsibleContent.Visibility = collapsing ? Visibility.Collapsed : Visibility.Visible;
+        // 펼침 = 뜬 눈(이모지 👁) / 접힘 = 감은 눈(이모지 폰트에 없어 벡터로 직접 그림).
+        CollapseButton.Content = collapsing ? MakeClosedEyeIcon() : "\U0001F441";
+        CollapseButton.ToolTip = collapsing ? "툴바 펼치기 (눈 감음 = 접힘)" : "툴바 접기 (눈 뜸 = 펼쳐짐)";
+    }
+
+    /// <summary>감은 눈 아이콘(아래로 휜 눈꺼풀 + 속눈썹)을 벡터로 그린다.
+    /// 이모지 폰트에 단독 '감은 눈' 글리프가 없어 환경 무관하게 보이도록 직접 그린다.</summary>
+    private static System.Windows.Shapes.Path MakeClosedEyeIcon() => new()
+    {
+        Width = 18,
+        Height = 18,
+        Stretch = Stretch.Uniform,
+        Stroke = Brushes.White,
+        StrokeThickness = 1.5,
+        StrokeStartLineCap = PenLineCap.Round,
+        StrokeEndLineCap = PenLineCap.Round,
+        Data = Geometry.Parse("M2,7 C5,11 11,11 14,7 M4,9.5 L3,11 M8,10.2 L8,12 M12,9.5 L13,11")
+    };
+
     // ── 보드/효과 토글 버튼 ───────────────────────────────────────
     private void OnWhiteboardClick(object sender, RoutedEventArgs e) => WhiteboardToggleRequested?.Invoke();
-    private void OnGhostClick(object sender, RoutedEventArgs e) => GhostToggleRequested?.Invoke();
     private void OnMagnifierClick(object sender, RoutedEventArgs e) => MagnifierToggleRequested?.Invoke();
-    private void OnFadeClick(object sender, RoutedEventArgs e) => FadeToggleRequested?.Invoke();
+    private void OnMagnifierRightClick(object sender, MouseButtonEventArgs e)
+    {
+        e.Handled = true;
+        MagnifierOffRequested?.Invoke(); // 우클릭은 항상 끄기(좌클릭 토글이 안 먹는 상황 대비).
+    }
     private void OnHaloClick(object sender, RoutedEventArgs e) => HaloToggleRequested?.Invoke();
     private void OnHaloRightClick(object sender, MouseButtonEventArgs e)
     {
@@ -174,9 +233,25 @@ public partial class ToolbarWindow : Window
         }
     }
 
+    /// <summary>현재 선택된(활성 도구) 색과 일치하는 Quick 색상 스와치에 흰색 선택 링을 둘러
+    /// 어느 색이 활성인지 직관적으로 보이게 한다.</summary>
+    public void SetCurrentColor(Color c)
+    {
+        foreach (var item in ColorSwatches.Items)
+        {
+            if (item is Button { Tag: Color sc } swatch)
+            {
+                bool match = sc == c;
+                swatch.BorderBrush = match ? SelectedSwatchBrush : DefaultSwatchBrush;
+                swatch.BorderThickness = new Thickness(match ? 3 : 1);
+            }
+        }
+    }
+
     /// <summary>활성 도구 버튼을 하이라이트한다(이벤트 미발생).</summary>
     public void SetActiveTool(ToolKind tool)
     {
+        _activeTool = tool;
         PenButton.Background = tool == ToolKind.Pen ? ActiveBrush : IdleBrush;
         HighlighterButton.Background = tool == ToolKind.Highlighter ? ActiveBrush : IdleBrush;
         EraserButton.Background = tool == ToolKind.Eraser ? ActiveBrush : IdleBrush;
@@ -186,7 +261,34 @@ public partial class ToolbarWindow : Window
         EllipseButton.Background = tool == ToolKind.Ellipse ? ActiveBrush : IdleBrush;
         TextButton.Background = tool == ToolKind.Text ? ActiveBrush : IdleBrush;
         NumberButton.Background = tool == ToolKind.Number ? ActiveBrush : IdleBrush;
+
+        // 펜 묶음 버튼: 쓰기 도구(펜·형광펜·텍스트)가 활성이면 강조하고, 현재 도구 글리프를 표시한다.
+        PenGroupButton.Background = IsWritingTool(tool) ? ActiveBrush : IdleBrush;
+        PenGroupButton.Content = tool switch
+        {
+            ToolKind.Highlighter => "\U0001F58D",
+            ToolKind.Text => "T",
+            _ => "✎"   // 펜(및 비쓰기 도구 기본): 연필
+        };
+
+        // 도형 묶음 버튼: 도형 도구가 활성이면 강조하고, 현재 도형 글리프를 표시한다.
+        // (도형이 아닐 땐 기본 묶음 아이콘 ▢.)
+        ShapesButton.Background = IsShapeTool(tool) ? ActiveBrush : IdleBrush;
+        ShapesButton.Content = tool switch
+        {
+            ToolKind.Line => "╱",
+            ToolKind.Arrow => "↗",
+            ToolKind.Rectangle => "▭",
+            ToolKind.Ellipse => "◯",
+            _ => "▢"
+        };
     }
+
+    private static bool IsShapeTool(ToolKind t) =>
+        t is ToolKind.Line or ToolKind.Arrow or ToolKind.Rectangle or ToolKind.Ellipse;
+
+    private static bool IsWritingTool(ToolKind t) =>
+        t is ToolKind.Pen or ToolKind.Highlighter or ToolKind.Text;
 
     /// <summary>굵기 슬라이더의 허용 범위를 바꾼다(예: 텍스트 도구는 폰트크기 8~200).
     /// ThicknessChanged 재발생 안 함.</summary>
@@ -219,16 +321,16 @@ public partial class ToolbarWindow : Window
     public void SetPassThrough(bool on)
     {
         _passThrough = on;
-        // 통과 모드: 손바닥(통과) / 그리기 모드: 연필.
-        PassThroughButton.Content = on ? "\U0001F590" : "✋";
-        PassThroughButton.ToolTip = on ? "통과 모드 (클릭하면 그리기)" : "그리기 모드 (클릭하면 통과)";
-        PassThroughButton.Background = on ? ActiveBrush : IdleBrush;
+        // 펜 옆 마우스 버튼이 그리기/통과 모드를 표시(통과 모드일 때 강조).
+        MouseButton.Background = on ? ActiveBrush : IdleBrush;
+        MouseButton.ToolTip = on
+            ? "마우스(통과) 모드 활성 — 펜·도구를 누르면 그리기 모드로"
+            : "마우스(통과) 모드 — 펜과 즉시 전환 (Ctrl+Alt+D)";
     }
 
     // ── 토글 상태 표시(이벤트 미발생) ─────────────────────────────
     public void SetWhiteboardActive(bool on) => WhiteboardButton.Background = on ? ActiveBrush : IdleBrush;
     public void SetMagnifierActive(bool on) => MagnifierButton.Background = on ? ActiveBrush : IdleBrush;
-    public void SetFadeActive(bool on) => FadeButton.Background = on ? ActiveBrush : IdleBrush;
     public void SetHaloActive(bool on) => HaloButton.Background = on ? ActiveBrush : IdleBrush;
     public void SetTimerActive(bool on) => TimerButton.Background = on ? ActiveBrush : IdleBrush;
 

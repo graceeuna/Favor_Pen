@@ -38,6 +38,10 @@ public sealed class ObjectLayer
     // ── 번호 카운터(FR-22) ─────────────────────────────────────
     private int _nextNumber = 1;
 
+    /// <summary>넘버링 태그 숫자에 쓰는 임베드 메이플스토리체(앱 동봉, 무설치 이식성).</summary>
+    private static readonly FontFamily NumberFont =
+        new(new Uri("pack://application:,,,/"), "./Assets/Fonts/#Maplestory");
+
     // 편집 중인 텍스트의 강제 종료 훅(있을 때만). ClearAll/도구전환에서 호출.
     private Action<bool>? _activeTextCommit;
 
@@ -132,6 +136,14 @@ public sealed class ObjectLayer
     // ── 마우스 핸들러 ──────────────────────────────────────────
     private void OnMouseDown(object sender, MouseButtonEventArgs e)
     {
+        if (ActiveTool == ToolKind.Eraser)
+        {
+            // 지우개로 벡터 객체(도형·텍스트·번호)도 지운다. InkCanvas 는 스트로크를
+            // 동시에 지우므로 e.Handled 는 두지 않는다(잉크+객체가 함께 지워짐).
+            EraseObjectsAt(e.GetPosition(_host));
+            return;
+        }
+
         if (!IsObjectTool(ActiveTool))
             return; // 잉크 도구 → InkCanvas 가 처리하도록 양보
 
@@ -167,6 +179,14 @@ public sealed class ObjectLayer
 
     private void OnMouseMove(object sender, MouseEventArgs e)
     {
+        if (ActiveTool == ToolKind.Eraser)
+        {
+            // 누른 채 끌면 지나가는 객체를 연속으로 지운다(스트로크 지우개와 동일한 느낌).
+            if (e.LeftButton == MouseButtonState.Pressed)
+                EraseObjectsAt(e.GetPosition(_host));
+            return;
+        }
+
         if (!_dragging || _preview == null)
             return;
 
@@ -199,6 +219,57 @@ public sealed class ObjectLayer
         CommitChild(final);
 
         e.Handled = true;
+    }
+
+    // ── 지우개: 벡터 객체 삭제(FR-04 확장) ─────────────────────
+
+    /// <summary>지정 지점 아래의 벡터 객체(도형·텍스트·번호)를 찾아 제거한다(Undo 기록).
+    /// <see cref="UIElement.InputHitTest"/> 로 실제 커서 아래 요소를 찾으므로
+    /// 드래그 중 마우스 캡처 상태에서도 정확히 짚는다.</summary>
+    private void EraseObjectsAt(Point p)
+    {
+        // 위(나중에 추가된 것)부터 검사해 점을 포함하는 가장 위 객체 하나를 지운다.
+        for (int i = _host.Children.Count - 1; i >= 0; i--)
+        {
+            UIElement child = _host.Children[i];
+            if (child is TextBox)
+                continue; // 편집 중인 텍스트는 제외(확정 전 객체).
+
+            Rect b = GetChildBounds(child);
+            b.Inflate(4, 4); // 얇은 선·작은 객체도 쉽게 지우도록 약간 여유.
+            if (b.Contains(p))
+            {
+                RemoveChildWithUndo(child);
+                return; // 드래그로 연속 호출되므로 한 번에 하나만 제거.
+            }
+        }
+    }
+
+    /// <summary>InkCanvas 자식의 호스트 좌표 경계 사각형을 구한다.
+    /// Rectangle/Ellipse/Text/번호는 SetLeft/Top + 크기로, Line/화살표는 절대 좌표 기하로
+    /// 배치되는데, 둘 다 <see cref="VisualTreeHelper.GetDescendantBounds"/> 로 통일해 처리한다.</summary>
+    private static Rect GetChildBounds(UIElement child)
+    {
+        double left = InkCanvas.GetLeft(child);
+        double top = InkCanvas.GetTop(child);
+        left = double.IsNaN(left) ? 0 : left;
+        top = double.IsNaN(top) ? 0 : top;
+
+        Rect local = VisualTreeHelper.GetDescendantBounds((Visual)child);
+        if (local.IsEmpty)
+            local = new Rect(child.RenderSize);
+        return new Rect(left + local.X, top + local.Y, local.Width, local.Height);
+    }
+
+    /// <summary>객체를 제거하고 역연산(복원)을 Undo 스택에 기록한다(공유 타임라인 합류).</summary>
+    private void RemoveChildWithUndo(UIElement element)
+    {
+        _host.Children.Remove(element);
+        if (_undo.IsApplying)
+            return;
+        _undo.Push(
+            undo: () => { if (!_host.Children.Contains(element)) _host.Children.Add(element); },
+            redo: () => _host.Children.Remove(element));
     }
 
     // ── 도형 생성/갱신 ─────────────────────────────────────────
@@ -473,6 +544,7 @@ public sealed class ObjectLayer
         {
             Text = n.ToString(CultureInfo.InvariantCulture),
             Foreground = Brushes.White,
+            FontFamily = NumberFont,
             FontWeight = FontWeights.Bold,
             FontSize = diameter * 0.5,
             HorizontalAlignment = HorizontalAlignment.Center,
