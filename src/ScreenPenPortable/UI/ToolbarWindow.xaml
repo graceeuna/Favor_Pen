@@ -105,12 +105,14 @@
             <!-- ── 도구(2열): 펜묶음·마우스 / 도형묶음·지우개 / 넘버·채움 ── -->
             <WrapPanel Width="72" Orientation="Horizontal" HorizontalAlignment="Center">
                 <Button x:Name="PenGroupButton" Style="{StaticResource ToolButton}"
-                        Content="&#x270E;" ToolTip="펜·형광펜·텍스트 (클릭하면 펼쳐 선택)" Click="OnPenGroupClick"/>
+                        Content="&#x270E;" ToolTip="펜·형광펜·텍스트 — 탭: 바로 사용 / 길게 누름: 펼쳐 선택"
+                        PreviewMouseLeftButtonDown="OnGroupDown" PreviewMouseLeftButtonUp="OnGroupUp"/>
                 <Button x:Name="MouseButton" Style="{StaticResource ToolButton}"
                         Content="&#x1F5B1;"
                         ToolTip="마우스(통과) 모드 — 펜과 즉시 전환 (Ctrl+Alt+D). 도구를 누르면 다시 그리기 모드로." Click="OnMouseModeClick"/>
                 <Button x:Name="ShapesButton" Style="{StaticResource ToolButton}"
-                        Content="&#x25A2;" ToolTip="도형: 선·화살표·사각형·타원 (클릭하면 펼쳐 선택)" Click="OnShapesClick"/>
+                        Content="&#x25A2;" ToolTip="도형: 선·화살표·사각형·타원 — 탭: 바로 사용 / 길게 누름: 펼쳐 선택"
+                        PreviewMouseLeftButtonDown="OnGroupDown" PreviewMouseLeftButtonUp="OnGroupUp"/>
                 <Button x:Name="EraserButton" Style="{StaticResource ToolButton}"
                         ToolTip="지우개 (Ctrl+Alt+3) — 그림·도형·텍스트·번호 모두 지움" Click="OnEraserClick">
                     <!-- 블록 지우개(기울어진 직사각형 + 끝단 띠)를 벡터로 그림 -->

@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Threading;
 using ScreenPenPortable.Settings;
 
 namespace ScreenPenPortable.UI;
@@ -32,6 +33,15 @@ public partial class ToolbarWindow : Window
 
     /// <summary>현재 활성 도구(넘버링 등 토글 동작 판정용).</summary>
     private ToolKind _activeTool = ToolKind.Pen;
+
+    /// <summary>각 묶음에서 마지막으로 고른 도구(짧게 탭 시 바로 사용할 도구).</summary>
+    private ToolKind _lastWritingTool = ToolKind.Pen;
+    private ToolKind _lastShapeTool = ToolKind.Line;
+
+    // ── 묶음 버튼 길게 누름 감지 ───────────────────────────────────
+    private DispatcherTimer? _holdTimer;
+    private Button? _holdButton;
+    private bool _holdFired;
 
     // ── 공개 이벤트(지휘자가 구독) ────────────────────────────────
     public event Action<ToolKind>? ToolSelected;
@@ -92,22 +102,51 @@ public partial class ToolbarWindow : Window
     private void OnNumberClick(object sender, RoutedEventArgs e) =>
         SelectTool(_activeTool == ToolKind.Number ? ToolKind.Pen : ToolKind.Number);
 
-    /// <summary>펜 묶음 버튼: 펜·형광펜·텍스트 선택 팝업을 열고 닫는다.</summary>
-    private void OnPenGroupClick(object sender, RoutedEventArgs e) => PenPopup.IsOpen = !PenPopup.IsOpen;
+    /// <summary>묶음 버튼(펜/도형)을 누르면 길게 누름 타이머를 시작한다(짧게 떼면 탭, 길게 누르면 팝업).</summary>
+    private void OnGroupDown(object sender, MouseButtonEventArgs e)
+    {
+        _holdButton = sender as Button;
+        _holdFired = false;
+        _holdTimer ??= new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(400) };
+        _holdTimer.Stop();
+        _holdTimer.Tick -= OnHoldTick;
+        _holdTimer.Tick += OnHoldTick;
+        _holdTimer.Start();
+        e.Handled = true; // 기본 Click 억제 — 탭/길게 누름을 직접 처리.
+    }
+
+    /// <summary>길게 누름 임계시간(400ms) 도달 → 해당 묶음 선택 팝업을 연다.</summary>
+    private void OnHoldTick(object? sender, EventArgs e)
+    {
+        _holdTimer?.Stop();
+        _holdFired = true;
+        if (_holdButton == PenGroupButton) PenPopup.IsOpen = true;
+        else if (_holdButton == ShapesButton) ShapesPopup.IsOpen = true;
+    }
+
+    /// <summary>버튼을 떼면: 길게 누름이 이미 팝업을 열었으면 무동작,
+    /// 아니면 짧은 탭 → 묶음의 마지막 도구를 바로 사용한다.</summary>
+    private void OnGroupUp(object sender, MouseButtonEventArgs e)
+    {
+        _holdTimer?.Stop();
+        e.Handled = true;
+        if (_holdFired) { _holdFired = false; return; }
+        if (sender == PenGroupButton) SelectTool(_lastWritingTool);
+        else if (sender == ShapesButton) SelectTool(_lastShapeTool);
+    }
 
     /// <summary>펜 팝업에서 쓰기 도구(펜·형광펜·텍스트)를 고르면 선택하고 팝업을 닫는다.</summary>
     private void SelectWriting(ToolKind tool)
     {
+        _lastWritingTool = tool;
         SelectTool(tool);
         PenPopup.IsOpen = false;
     }
 
-    /// <summary>도형 묶음 버튼: 도형 선택 팝업을 열고 닫는다.</summary>
-    private void OnShapesClick(object sender, RoutedEventArgs e) => ShapesPopup.IsOpen = !ShapesPopup.IsOpen;
-
     /// <summary>도형 팝업에서 도형 하나를 고르면 해당 도형 도구를 선택하고 팝업을 닫는다.</summary>
     private void SelectShape(ToolKind tool)
     {
+        _lastShapeTool = tool;
         SelectTool(tool);
         ShapesPopup.IsOpen = false;
     }
@@ -252,6 +291,10 @@ public partial class ToolbarWindow : Window
     public void SetActiveTool(ToolKind tool)
     {
         _activeTool = tool;
+        // 묶음의 마지막 도구를 갱신(버튼 글리프·탭 동작이 현재 도구와 일치하도록).
+        if (IsWritingTool(tool)) _lastWritingTool = tool;
+        else if (IsShapeTool(tool)) _lastShapeTool = tool;
+
         PenButton.Background = tool == ToolKind.Pen ? ActiveBrush : IdleBrush;
         HighlighterButton.Background = tool == ToolKind.Highlighter ? ActiveBrush : IdleBrush;
         EraserButton.Background = tool == ToolKind.Eraser ? ActiveBrush : IdleBrush;
