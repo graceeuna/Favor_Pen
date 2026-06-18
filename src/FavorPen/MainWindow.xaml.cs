@@ -32,7 +32,7 @@ public partial class MainWindow : Window
     private const int WS_EX_TRANSPARENT = 0x00000020;
     private const int WS_EX_TOOLWINDOW = 0x00000080;
     private const int WM_HOTKEY = 0x0312;
-    private const uint MOD_ALT = 0x0001, MOD_CONTROL = 0x0002, MOD_NOREPEAT = 0x4000;
+    private const uint MOD_ALT = 0x0001, MOD_CONTROL = 0x0002, MOD_SHIFT = 0x0004, MOD_NOREPEAT = 0x4000;
 
     [DllImport("user32.dll")] private static extern int GetWindowLong(IntPtr h, int i);
     [DllImport("user32.dll")] private static extern int SetWindowLong(IntPtr h, int i, int v);
@@ -553,28 +553,34 @@ public partial class MainWindow : Window
     // ── 핫키 ───────────────────────────────────────────────
     private void RegisterHotkeys()
     {
-        uint cm = MOD_CONTROL | MOD_ALT | MOD_NOREPEAT;
-        void Reg(Hk id, Key k)
+        // 누르기 쉬운 Ctrl+Shift 를 기본으로 쓰되, 흔한 앱 단축키와 겹치는 것만 Ctrl+Alt 로 둔다
+        // (Ctrl+Shift+Z=Redo, +S=다른이름저장, +W=브라우저 창 닫기, +Y=Redo).
+        uint shift = MOD_CONTROL | MOD_SHIFT | MOD_NOREPEAT;
+        uint alt = MOD_CONTROL | MOD_ALT | MOD_NOREPEAT;
+        void Reg(Hk id, Key k, uint mod)
         {
             // 등록 실패(타앱이 같은 핫키 점유)는 조용히 넘기지 말고 수집 → 트레이로 알림.
-            if (!RegisterHotKey(_hwnd, (int)id, cm, (uint)KeyInterop.VirtualKeyFromKey(k)))
+            if (!RegisterHotKey(_hwnd, (int)id, mod, (uint)KeyInterop.VirtualKeyFromKey(k)))
                 _hotkeyFailures.Add(id.ToString());
         }
 
-        Reg(Hk.Toggle, Key.D);
-        Reg(Hk.Pen, Key.D1);
-        Reg(Hk.Highlighter, Key.D2);
-        Reg(Hk.Eraser, Key.D3);
-        Reg(Hk.Undo, Key.Z);
-        Reg(Hk.Redo, Key.Y);
-        Reg(Hk.Clear, Key.E);
-        Reg(Hk.Screenshot, Key.S);
-        Reg(Hk.Exit, Key.Q);
-        Reg(Hk.Whiteboard, Key.W);
-        Reg(Hk.Ghost, Key.G);
-        Reg(Hk.Magnifier, Key.M);
-        Reg(Hk.Halo, Key.H);
-        Reg(Hk.Timer, Key.C);
+        // ── Ctrl+Shift (충돌 적은 동작) ──
+        Reg(Hk.Toggle, Key.D, shift);
+        Reg(Hk.Pen, Key.D1, shift);
+        Reg(Hk.Highlighter, Key.D2, shift);
+        Reg(Hk.Eraser, Key.D3, shift);
+        Reg(Hk.Clear, Key.E, shift);
+        Reg(Hk.Ghost, Key.G, shift);
+        Reg(Hk.Magnifier, Key.M, shift);
+        Reg(Hk.Halo, Key.H, shift);
+        Reg(Hk.Timer, Key.C, shift);
+        Reg(Hk.Exit, Key.Q, shift);
+
+        // ── Ctrl+Alt (흔한 앱 단축키와 겹쳐 유지) ──
+        Reg(Hk.Undo, Key.Z, alt);
+        Reg(Hk.Redo, Key.Y, alt);
+        Reg(Hk.Screenshot, Key.S, alt);
+        Reg(Hk.Whiteboard, Key.W, alt);
     }
 
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)

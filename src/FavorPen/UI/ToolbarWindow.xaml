@@ -109,12 +109,12 @@
                         PreviewMouseLeftButtonDown="OnGroupDown" PreviewMouseLeftButtonUp="OnGroupUp"/>
                 <Button x:Name="MouseButton" Style="{StaticResource ToolButton}"
                         Content="&#x1F5B1;"
-                        ToolTip="마우스(통과) 모드 — 펜과 즉시 전환 (Ctrl+Alt+D). 도구를 누르면 다시 그리기 모드로." Click="OnMouseModeClick"/>
+                        ToolTip="마우스(통과) 모드 — 펜과 즉시 전환 (Ctrl+Shift+D). 도구를 누르면 다시 그리기 모드로." Click="OnMouseModeClick"/>
                 <Button x:Name="ShapesButton" Style="{StaticResource ToolButton}"
                         Content="&#x25A2;" ToolTip="도형: 선·화살표·사각형·타원 — 탭: 바로 사용 / 길게 누름: 펼쳐 선택"
                         PreviewMouseLeftButtonDown="OnGroupDown" PreviewMouseLeftButtonUp="OnGroupUp"/>
                 <Button x:Name="EraserButton" Style="{StaticResource ToolButton}"
-                        ToolTip="지우개 (Ctrl+Alt+3) — 그림·도형·텍스트·번호 모두 지움" Click="OnEraserClick">
+                        ToolTip="지우개 (Ctrl+Shift+3) — 그림·도형·텍스트·번호 모두 지움" Click="OnEraserClick">
                     <!-- 블록 지우개(기울어진 직사각형 + 끝단 띠)를 벡터로 그림 -->
                     <Path Width="20" Height="20" Stretch="Uniform"
                           Stroke="{StaticResource Ink}" StrokeThickness="1.4"
@@ -137,9 +137,9 @@
                     </Border.Effect>
                     <StackPanel Orientation="Horizontal">
                         <Button x:Name="PenButton" Style="{StaticResource ToolButton}"
-                                Content="&#x270E;" ToolTip="펜 (Ctrl+Alt+1)" Click="OnPenClick"/>
+                                Content="&#x270E;" ToolTip="펜 (Ctrl+Shift+1)" Click="OnPenClick"/>
                         <Button x:Name="HighlighterButton" Style="{StaticResource ToolButton}"
-                                Content="&#x1F58D;" ToolTip="하이라이터 (Ctrl+Alt+2)" Click="OnHighlighterClick"/>
+                                Content="&#x1F58D;" ToolTip="하이라이터 (Ctrl+Shift+2)" Click="OnHighlighterClick"/>
                         <Button x:Name="TextButton" Style="{StaticResource ToolButton}"
                                 Content="T" FontWeight="Bold" ToolTip="텍스트" Click="OnTextClick"/>
                     </StackPanel>
@@ -203,7 +203,7 @@
                 <Button x:Name="RedoButton" Style="{StaticResource ToolButton}"
                         Content="&#x21AA;" ToolTip="다시 실행 (Ctrl+Alt+Y)" Click="OnRedoClick"/>
                 <Button x:Name="ClearButton" Style="{StaticResource ToolButton}"
-                        Content="&#x1F5D1;" ToolTip="전체 지우기 (Ctrl+Alt+E)" Click="OnClearClick"/>
+                        Content="&#x1F5D1;" ToolTip="전체 지우기 (Ctrl+Shift+E)" Click="OnClearClick"/>
                 <Button x:Name="ScreenshotButton" Style="{StaticResource ToolButton}"
                         Content="&#x1F4F7;" ToolTip="캡처 — Windows 캡처 도구 열기 (Ctrl+Alt+S)" Click="OnScreenshotClick"/>
             </WrapPanel>
@@ -215,12 +215,12 @@
                 <Button x:Name="WhiteboardButton" Style="{StaticResource ToolButton}"
                         Content="&#x2B1C;" ToolTip="화이트보드/블랙보드 순환 (Ctrl+Alt+W)" Click="OnWhiteboardClick"/>
                 <Button x:Name="MagnifierButton" Style="{StaticResource ToolButton}"
-                        Content="&#x1F50D;" ToolTip="돋보기: 좌클릭 켜기/끄기 (Ctrl+Alt+M) · 우클릭 끄기"
+                        Content="&#x1F50D;" ToolTip="돋보기: 좌클릭 켜기/끄기 (Ctrl+Shift+M) · 우클릭 끄기"
                         Click="OnMagnifierClick" MouseRightButtonUp="OnMagnifierRightClick"/>
                 <Button x:Name="TimerButton" Style="{StaticResource ToolButton}"
-                        Content="&#x23F1;" ToolTip="타이머: 화면 중앙 카운트다운 (Ctrl+Alt+C)" Click="OnTimerClick"/>
+                        Content="&#x23F1;" ToolTip="타이머: 화면 중앙 카운트다운 (Ctrl+Shift+C)" Click="OnTimerClick"/>
                 <Button x:Name="HaloButton" Style="{StaticResource ToolButton}"
-                        Content="&#x25CE;" ToolTip="마우스 하이라이트(헤일로): 좌클릭 켜기/끄기 (Ctrl+Alt+H) · 우클릭 색·크기 설정"
+                        Content="&#x25CE;" ToolTip="마우스 하이라이트(헤일로): 좌클릭 켜기/끄기 (Ctrl+Shift+H) · 우클릭 색·크기 설정"
                         Click="OnHaloClick" MouseRightButtonUp="OnHaloRightClick"/>
             </WrapPanel>
 
@@ -228,7 +228,7 @@
 
             <!-- ── 종료 ─────────────────────────────────────────── -->
             <Button x:Name="ExitButton" Style="{StaticResource ToolButton}"
-                    Content="&#x2715;" ToolTip="종료 (Ctrl+Alt+Q)"
+                    Content="&#x2715;" ToolTip="종료 (Ctrl+Shift+Q)"
                     Foreground="#FFFF6B6B" Click="OnExitClick"/>
 
             </StackPanel>

@@ -368,7 +368,7 @@ public partial class ToolbarWindow : Window
         MouseButton.Background = on ? ActiveBrush : IdleBrush;
         MouseButton.ToolTip = on
             ? "마우스(통과) 모드 활성 — 펜·도구를 누르면 그리기 모드로"
-            : "마우스(통과) 모드 — 펜과 즉시 전환 (Ctrl+Alt+D)";
+            : "마우스(통과) 모드 — 펜과 즉시 전환 (Ctrl+Shift+D)";
 
         // 마우스(통과) 모드에선 다른 도구 선택 강조를 모두 해제하고,
         // 빠져나오면 현재 도구를 다시 강조한다.
