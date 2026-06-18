@@ -11,12 +11,12 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
 using Microsoft.Win32;
-using ScreenPenPortable.Settings;
-using ScreenPenPortable.Drawing;
-using ScreenPenPortable.Services;
-using ScreenPenPortable.UI;
+using FavorPen.Settings;
+using FavorPen.Drawing;
+using FavorPen.Services;
+using FavorPen.UI;
 
-namespace ScreenPenPortable;
+namespace FavorPen;
 
 /// <summary>
 /// 가상 화면 전체를 덮는 단일 투명·항상-위 오버레이(멀티모니터 = FR-17 A안).

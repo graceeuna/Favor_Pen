@@ -3,9 +3,9 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
-using ScreenPenPortable.Settings;
+using FavorPen.Settings;
 
-namespace ScreenPenPortable.UI;
+namespace FavorPen.UI;
 
 /// <summary>
 /// 프레임리스 항상-위 플로팅 툴바. 도구/색상/굵기/편집/효과 명령을 이벤트로 노출하고,

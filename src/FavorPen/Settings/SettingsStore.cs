@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Text.Json;
 
-namespace ScreenPenPortable.Settings;
+namespace FavorPen.Settings;
 
 /// <summary>
 /// <see cref="AppSettings"/> 를 실행파일 옆 <c>settings.json</c> 에 읽고 쓴다.

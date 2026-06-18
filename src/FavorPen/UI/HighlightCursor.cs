@@ -6,7 +6,7 @@ using System.Windows.Media;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 
-namespace ScreenPenPortable.UI;
+namespace FavorPen.UI;
 
 /// <summary>
 /// FR-21: 헤일로(반투명 원) 커서. 발표 중 마우스 위치를 강조한다.

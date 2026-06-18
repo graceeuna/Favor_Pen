@@ -5,9 +5,9 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Shapes;
-using ScreenPenPortable.Settings;
+using FavorPen.Settings;
 
-namespace ScreenPenPortable.Drawing;
+namespace FavorPen.Drawing;
 
 /// <summary>
 /// 벡터 객체 도구 서브시스템(FR-14/15/22/23). 잉크(펜·하이라이터·지우개)와 달리

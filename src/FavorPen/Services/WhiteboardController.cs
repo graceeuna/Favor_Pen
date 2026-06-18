@@ -2,7 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 
-namespace ScreenPenPortable.Services;
+namespace FavorPen.Services;
 
 /// <summary>
 /// FR-16: 화이트보드/블랙보드 불투명 배경을 제어한다.

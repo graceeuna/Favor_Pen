@@ -6,7 +6,7 @@ using System.Windows;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 
-namespace ScreenPenPortable.UI;
+namespace FavorPen.UI;
 
 /// <summary>
 /// FR-24 돋보기 / 줌: 커서 주변 화면 영역을 확대해 보여 주는 작은 항상-위 프레임리스 창.

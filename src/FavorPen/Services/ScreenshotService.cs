@@ -4,7 +4,7 @@ using System.IO;
 using System.Windows;
 using System.Windows.Media.Imaging;
 
-namespace ScreenPenPortable.Services;
+namespace FavorPen.Services;
 
 /// <summary>
 /// 가상 화면(모든 모니터를 포함하는 전체 영역) 캡처 서비스.

@@ -1,4 +1,4 @@
-<Window x:Class="ScreenPenPortable.UI.HaloSettingsWindow"
+<Window x:Class="FavorPen.UI.HaloSettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="마우스 하이라이트 설정"

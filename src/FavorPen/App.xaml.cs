@@ -2,7 +2,7 @@
 using System.Data;
 using System.Windows;
 
-namespace ScreenPenPortable;
+namespace FavorPen;
 
 /// <summary>
 /// Interaction logic for App.xaml

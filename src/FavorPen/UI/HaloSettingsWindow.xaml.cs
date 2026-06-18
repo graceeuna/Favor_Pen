@@ -4,7 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 
-namespace ScreenPenPortable.UI;
+namespace FavorPen.UI;
 
 /// <summary>
 /// 마우스 하이라이트(헤일로, FR-21)의 <b>색상·크기</b>를 바꾸는 작은 설정 팝업.

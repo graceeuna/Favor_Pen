@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace ScreenPenPortable.Settings;
+namespace FavorPen.Settings;
 
 /// <summary>
 /// 현재 선택된 도구 종류(잉크 + 벡터 객체 통합).

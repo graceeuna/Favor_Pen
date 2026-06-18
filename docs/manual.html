@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ScreenPen Portable 사용 설명서</title>
+<title>FavorPen 사용 설명서</title>
 <style>
   :root{
     --bg:#f6f7f9; --card:#ffffff; --ink:#1e2329; --sub:#5b6573;
@@ -55,7 +55,7 @@
 <body>
 <header>
   <div class="wrap">
-    <h1>🖍️ ScreenPen Portable 사용 설명서</h1>
+    <h1>🖍️ FavorPen 사용 설명서</h1>
     <p>화면 위 어디에든 그리고 주석하는 무설치 항상-위 오버레이 도구 · Windows 10/11</p>
     <span class="badge">v0.3 · 단일 실행파일 · 설치 불필요</span>
   </div>
@@ -77,7 +77,7 @@
 
 <section id="intro">
   <h2>1. 제품 소개</h2>
-  <p>ScreenPen Portable은 바탕화면·발표 슬라이드·영상·웹·앱 <b>어떤 화면 위에든</b> 즉시 펜·도형·텍스트로 주석을 그리는 도구입니다. 필요하면 화면을 <b>통과(click-through)</b>시켜 아래 앱을 그대로 조작할 수 있고, 설치 없이 <b>실행파일 하나</b>로 동작합니다.</p>
+  <p>FavorPen은 바탕화면·발표 슬라이드·영상·웹·앱 <b>어떤 화면 위에든</b> 즉시 펜·도형·텍스트로 주석을 그리는 도구입니다. 필요하면 화면을 <b>통과(click-through)</b>시켜 아래 앱을 그대로 조작할 수 있고, 설치 없이 <b>실행파일 하나</b>로 동작합니다.</p>
   <ul>
     <li>펜 · 하이라이터 · 지우개, 색상 · 굵기 자유 설정</li>
     <li>도형(직선·화살표·사각형·타원) · 텍스트 · 번호 태그</li>
@@ -111,14 +111,14 @@
 
   <h3>옮겨서 실행하는 순서</h3>
   <ol>
-    <li><code>ScreenPenPortable.exe</code> <b>한 개</b>를 USB나 다른 PC 폴더(바탕화면 등)에 복사</li>
+    <li><code>FavorPen.exe</code> <b>한 개</b>를 USB나 다른 PC 폴더(바탕화면 등)에 복사</li>
     <li>더블클릭 → 바로 실행. 트레이(작업표시줄 우측)에 아이콘이 상주합니다.</li>
     <li>설정 <code>settings.json</code>은 <b>exe 옆에 자동 생성</b> → USB에 넣으면 설정도 함께 이동합니다.</li>
   </ol>
   <div class="warn">⚠️ <b>처음 실행 시 SmartScreen 경고</b>가 뜰 수 있습니다(서명 안 된 exe). <b>"추가 정보 → 실행"</b>을 누르면 됩니다(한 번만). 동작 환경은 <b>Windows 10(1809+) / 11, 64비트</b>입니다.</div>
 
   <h3>직접 빌드(개발자용)</h3>
-  <pre>dotnet publish src/ScreenPenPortable -c Release -r win-x64 --self-contained true `
+  <pre>dotnet publish src/FavorPen -c Release -r win-x64 --self-contained true `
   -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true `
   -p:EnableCompressionInSingleFile=true</pre>
   <p class="cap">런타임 의존(소형)으로 만들려면 <code>--self-contained false</code> 로 바꾸면 됩니다.</p>
@@ -271,7 +271,7 @@
 
 </div>
 <footer>
-  ScreenPen Portable · Epic Pen 호환 기능 클론 · 무설치 화면 주석 도구<br>
+  FavorPen · Epic Pen 호환 기능 클론 · 무설치 화면 주석 도구<br>
   타이머 글꼴: 넥슨 메이플스토리 서체(개인·상업 무료) · 본 문서의 스크린샷은 실제 실행 화면입니다.
 </footer>
 </body>

@@ -2,7 +2,7 @@ using System;
 using System.Windows.Controls;
 using System.Windows.Ink;
 
-namespace ScreenPenPortable.Drawing;
+namespace FavorPen.Drawing;
 
 /// <summary>
 /// <see cref="InkCanvas"/> 의 스트로크 추가/삭제를 <b>공유 <see cref="UndoStack"/> 타임라인</b>에

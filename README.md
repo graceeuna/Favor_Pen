@@ -7,7 +7,7 @@
 
 ## 📥 다운로드
 
-최신 실행파일과 설명서는 **[Releases](https://github.com/fkrn75/screen-pen-portable/releases/latest)** 에서 받으세요.
+최신 실행파일과 설명서는 **[Releases](https://github.com/graceeuna/Favor_Pen/releases/latest)** 에서 받으세요.
 
 | 파일 | 크기 | 조건 |
 |---|---|---|
@@ -61,13 +61,13 @@
 
 ```powershell
 # 개발 실행
-dotnet run --project src/ScreenPenPortable
+dotnet run --project src/FavorPen
 
 # 무설치 단일 실행파일 배포 (.NET 런타임 미설치 PC에서도 실행)
-dotnet publish src/ScreenPenPortable -c Release -r win-x64 --self-contained true `
+dotnet publish src/FavorPen -c Release -r win-x64 --self-contained true `
   -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true `
   -p:EnableCompressionInSingleFile=true
-# 결과물: src/ScreenPenPortable/bin/Release/net9.0-windows/win-x64/publish/FavorPen.exe
+# 결과물: src/FavorPen/bin/Release/net9.0-windows/win-x64/publish/FavorPen.exe
 ```
 
 ## 기술 스택
@@ -85,12 +85,12 @@ dotnet publish src/ScreenPenPortable -c Release -r win-x64 --self-contained true
 
 ## 프로젝트 구조
 ```
-screen-pen-portable/
-├─ ScreenPenPortable.sln
+Favor_Pen/
+├─ FavorPen.sln
 ├─ README.md
 ├─ 기능명세서.md                  # 기능 명세 (설계 문서)
 └─ src/
-   └─ ScreenPenPortable/          # WPF 앱
+   └─ FavorPen/          # WPF 앱
       ├─ App.xaml(.cs)
       ├─ MainWindow.xaml(.cs)     # 통합 허브: 오버레이 + 도구 디스패치 + 핫키 + 모드
       ├─ Settings/                # AppSettings, SettingsStore (settings.json)

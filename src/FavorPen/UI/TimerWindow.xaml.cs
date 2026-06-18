@@ -5,7 +5,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
 
-namespace ScreenPenPortable.UI;
+namespace FavorPen.UI;
 
 /// <summary>
 /// 화면 중앙에 표시되는 카운트다운 타이머. 사용자가 시간(±분/±초)과 글자 크기(A−/A+)를

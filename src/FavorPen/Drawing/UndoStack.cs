@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace ScreenPenPortable.Drawing;
+namespace FavorPen.Drawing;
 
 /// <summary>
 /// 스트로크 서브시스템(<see cref="UndoRedoManager"/>)과 벡터 객체 서브시스템

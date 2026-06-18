@@ -1,7 +1,7 @@
 using System.Drawing;
 using System.Windows.Forms;
 
-namespace ScreenPenPortable.Services;
+namespace FavorPen.Services;
 
 /// <summary>
 /// 시스템 트레이(알림 영역) 아이콘 래퍼.
