@@ -81,6 +81,24 @@ public partial class MainWindow : Window
         Height = SystemParameters.VirtualScreenHeight;
     }
 
+    /// <summary>주어진 창 위치가 현재 가상 화면(모든 모니터) 밖이면 보이는 기본 위치로 보정한다.
+    /// 듀얼모니터에서 저장한 좌표가 단일 모니터에선 화면 밖이라 툴바가 안 보이는 문제를 막는다.
+    /// 최소 <c>margin</c> 만큼은 화면 안에 들어오도록 보장한다.</summary>
+    private static (double left, double top) ClampToScreen(double left, double top)
+    {
+        double vsLeft = SystemParameters.VirtualScreenLeft;
+        double vsTop = SystemParameters.VirtualScreenTop;
+        double vsRight = vsLeft + SystemParameters.VirtualScreenWidth;
+        double vsBottom = vsTop + SystemParameters.VirtualScreenHeight;
+        const double margin = 90; // 최소한 드래그 핸들/버튼이 화면 안에 보이도록.
+
+        if (double.IsNaN(left) || left < vsLeft || left > vsRight - margin)
+            left = vsLeft + 40;
+        if (double.IsNaN(top) || top < vsTop || top > vsBottom - margin)
+            top = vsTop + 40;
+        return (left, top);
+    }
+
     protected override void OnSourceInitialized(EventArgs e)
     {
         base.OnSourceInitialized(e);
@@ -110,11 +128,13 @@ public partial class MainWindow : Window
         _tray.ClearRequested += () => Dispatcher.Invoke(ClearAllAnnotations);
         _tray.ExitRequested += () => Dispatcher.Invoke(Close);
 
-        // 플로팅 툴바
+        // 플로팅 툴바. 저장된 위치가 현재 화면 밖이면 보정한다
+        // (듀얼모니터에서 둘째 화면에 두고 저장 → 단일 모니터에서 켜면 화면 밖이라 안 보이던 문제).
+        var (tbLeft, tbTop) = ClampToScreen(_settings.ToolbarLeft, _settings.ToolbarTop);
         _toolbar = new ToolbarWindow
         {
-            Left = _settings.ToolbarLeft,
-            Top = _settings.ToolbarTop,
+            Left = tbLeft,
+            Top = tbTop,
             // 오버레이가 전체 화면 입력을 잡으므로, 툴바를 오버레이의 소유(owned) 창으로 둬서
             // 항상 오버레이 위에 떠 클릭 가능하게 한다(그리기 모드에서도 툴바 조작 가능).
             Owner = this
@@ -601,7 +621,17 @@ public partial class MainWindow : Window
         }
     }
 
-    private void OnDisplayChanged(object? sender, EventArgs e) => Dispatcher.Invoke(CoverVirtualScreen);
+    private void OnDisplayChanged(object? sender, EventArgs e) => Dispatcher.Invoke(() =>
+    {
+        CoverVirtualScreen();
+        // 모니터 분리(예: 노트북 도킹 해제)로 툴바가 화면 밖에 남는 것을 막는다.
+        if (_toolbar != null)
+        {
+            var (l, t) = ClampToScreen(_toolbar.Left, _toolbar.Top);
+            _toolbar.Left = l;
+            _toolbar.Top = t;
+        }
+    });
 
     private void OnClosed(object? sender, EventArgs e)
     {
