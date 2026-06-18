@@ -52,7 +52,7 @@
 
             <!-- 큰 카운트다운 표시 — 임베드 폰트 메이플스토리체 Bold(pack URI). -->
             <TextBlock x:Name="TimeText" Text="05:00"
-                       FontFamily="pack://application:,,,/ScreenPenPortable;component/Assets/Fonts/#Maplestory"
+                       FontFamily="pack://application:,,,/FavorPen;component/Assets/Fonts/#Maplestory"
                        FontWeight="Bold" FontSize="140"
                        Foreground="{StaticResource Ink}"
                        HorizontalAlignment="Center" TextAlignment="Center"/>

@@ -326,6 +326,22 @@ public partial class ToolbarWindow : Window
         MouseButton.ToolTip = on
             ? "마우스(통과) 모드 활성 — 펜·도구를 누르면 그리기 모드로"
             : "마우스(통과) 모드 — 펜과 즉시 전환 (Ctrl+Alt+D)";
+
+        // 마우스(통과) 모드에선 다른 도구 선택 강조를 모두 해제하고,
+        // 빠져나오면 현재 도구를 다시 강조한다.
+        if (on) ClearToolHighlights();
+        else SetActiveTool(_activeTool);
+    }
+
+    /// <summary>모든 도구 버튼의 활성 강조를 끈다(마우스 모드 진입 시 도구 선택 해제 표시).</summary>
+    private void ClearToolHighlights()
+    {
+        foreach (var b in new[]
+        {
+            PenGroupButton, PenButton, HighlighterButton, TextButton, EraserButton,
+            ShapesButton, LineButton, ArrowButton, RectButton, EllipseButton, NumberButton
+        })
+            b.Background = IdleBrush;
     }
 
     // ── 토글 상태 표시(이벤트 미발생) ─────────────────────────────

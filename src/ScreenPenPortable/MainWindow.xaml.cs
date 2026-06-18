@@ -122,7 +122,7 @@ public partial class MainWindow : Window
         _undo.Changed += () => _toolbar?.SetUndoRedoEnabled(_undo.CanUndo, _undo.CanRedo);
 
         // 트레이 상주
-        _tray = new TrayService("ScreenPen Portable");
+        _tray = new TrayService("FavorPen");
         _tray.ToggleRequested += () => Dispatcher.Invoke(ToggleToolbar);
         _tray.ScreenshotRequested += () => Dispatcher.Invoke(LaunchWindowsSnip);
         _tray.ClearRequested += () => Dispatcher.Invoke(ClearAllAnnotations);
@@ -539,11 +539,12 @@ public partial class MainWindow : Window
 
         _haloSettings.SetInitial(ParseColor(_settings.HighlightCursorColor), _settings.HighlightCursorRadius);
 
-        // 툴바 근처에 띄운다.
+        // 툴바 근처에 띄우되, 화면 밖으로 나가지 않게 보정한다.
         if (_toolbar != null)
         {
-            _haloSettings.Left = _toolbar.Left + _toolbar.ActualWidth + 8;
-            _haloSettings.Top = _toolbar.Top;
+            var (hl, ht) = ClampToScreen(_toolbar.Left + _toolbar.ActualWidth + 8, _toolbar.Top);
+            _haloSettings.Left = hl;
+            _haloSettings.Top = ht;
         }
         _haloSettings.Show();
         _haloSettings.Activate();

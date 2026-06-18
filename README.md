@@ -1,4 +1,4 @@
-# ScreenPen Portable
+# FavorPen
 
 무설치(Portable) **화면 주석 도구** — 데스크탑 화면 위에 펜·도형·텍스트로 그리고, 필요하면 화면을 통과시켜 아래 앱을 그대로 조작할 수 있는 항상-위(always-on-top) 투명 오버레이 도구입니다. [Epic Pen](https://epicpen.com)의 기능을 참고해 라이선스/구독 분기 없이 단일 무설치 빌드로 제공하는 것을 목표로 합니다.
 
@@ -11,8 +11,8 @@
 
 | 파일 | 크기 | 조건 |
 |---|---|---|
-| `ScreenPenPortable.exe` | ~71 MB | .NET 불필요 — **아무 PC·USB에서 바로 실행** |
-| `ScreenPenPortable-min-requires-dotnet9.exe` | ~1.6 MB | 대상 PC에 **[.NET 9 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/9.0)** 필요(1회) |
+| `FavorPen.exe` | ~71 MB | .NET 불필요 — **아무 PC·USB에서 바로 실행** |
+| `FavorPen-min-requires-dotnet9.exe` | ~1.6 MB | 대상 PC에 **[.NET 9 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/9.0)** 필요(1회) |
 | `manual.html` | ~76 KB | 스크린샷 포함 사용 설명서(단일 파일) |
 
 > 처음 실행 시 SmartScreen 경고가 뜨면 **"추가 정보 → 실행"**. Windows 10(1809+)/11 x64.
@@ -67,7 +67,7 @@ dotnet run --project src/ScreenPenPortable
 dotnet publish src/ScreenPenPortable -c Release -r win-x64 --self-contained true `
   -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true `
   -p:EnableCompressionInSingleFile=true
-# 결과물: src/ScreenPenPortable/bin/Release/net9.0-windows/win-x64/publish/ScreenPenPortable.exe
+# 결과물: src/ScreenPenPortable/bin/Release/net9.0-windows/win-x64/publish/FavorPen.exe
 ```
 
 ## 기술 스택

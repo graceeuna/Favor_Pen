@@ -8,8 +8,8 @@
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
     <RootNamespace>ScreenPenPortable</RootNamespace>
-    <AssemblyName>ScreenPenPortable</AssemblyName>
-    <Product>ScreenPen Portable</Product>
+    <AssemblyName>FavorPen</AssemblyName>
+    <Product>FavorPen</Product>
     <Version>0.1.0</Version>
     <Description>무설치 화면 주석 도구 (Epic Pen 호환 기능 클론)</Description>
   </PropertyGroup>

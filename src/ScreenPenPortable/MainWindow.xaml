@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:ScreenPenPortable"
         mc:Ignorable="d"
-        Title="ScreenPen Portable"
+        Title="FavorPen"
         WindowStyle="None"
         AllowsTransparency="True"
         Background="Transparent"
