@@ -3,8 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Magnifier"
         WindowStyle="None"
-        AllowsTransparency="True"
-        Background="Transparent"
+        AllowsTransparency="False"
+        Background="#FF00C8FF"
         Topmost="True"
         ShowInTaskbar="False"
         ResizeMode="NoResize"
@@ -14,15 +14,14 @@
         SnapsToDevicePixels="True">
     <!-- 둥근 테두리 프레임 + 내부 확대 이미지.
          IsHitTestVisible=False / Focusable=False: 돋보기는 순수 표시용이라 입력을 가로채지 않는다. -->
+    <!-- 불투명 창(AllowsTransparency=False) — WDA_EXCLUDEFROMCAPTURE 캡처 제외를 위해 필요.
+         둥근 모서리/그림자는 투명도가 있어야 하므로 사각 프레임으로 둔다. -->
     <Border x:Name="FrameBorder"
             BorderBrush="#FF00C8FF"
             BorderThickness="3"
-            CornerRadius="6"
+            CornerRadius="0"
             Background="#FF101010"
             Padding="2">
-        <Border.Effect>
-            <DropShadowEffect Color="#000000" BlurRadius="12" ShadowDepth="0" Opacity="0.6"/>
-        </Border.Effect>
         <Image x:Name="ZoomImage"
                Stretch="Fill"
                RenderOptions.BitmapScalingMode="NearestNeighbor"/>

@@ -20,10 +20,11 @@ namespace FavorPen.UI;
 ///    (Services/ScreenshotService.cs 의 변환 패턴과 동일.)
 ///
 /// 자기 캡처(재귀) 방지:
-///  - 소스 영역은 "커서 중심"으로 잡고, 창은 커서에서 일정 오프셋만큼 떨어뜨려 배치한다.
-///    소스 영역과 창이 겹치지 않으면 자기 자신을 캡처하지 않는다.
-///  - 그래도 겹칠 수 있는 화면 가장자리 상황을 대비해, 캡처 직전 창을 잠깐 숨겼다가
-///    (Visibility=Hidden) 캡처 후 다시 표시한다. 깜빡임 최소화를 위해 Hidden 만 사용한다.
+///  - 1순위: <c>SetWindowDisplayAffinity(WDA_EXCLUDEFROMCAPTURE)</c>(Win10 2004+)로 돋보기 창을
+///    화면 캡처에서 제외한다. 그러면 커서 정중앙에 겹쳐 띄워도 CopyFromScreen 이 자기 자신을
+///    잡지 않아 '거울 속 거울' 재귀가 생기지 않는다 → 진짜 돋보기(루페)처럼 커서를 따라간다.
+///  - 폴백(구형 OS): 캡처 제외가 안 되면 예전처럼 창을 커서 우하단으로 오프셋해 소스 영역과
+///    겹치지 않게 두고, 캡처 직전 잠깐 숨겼다가(Visibility=Hidden) 다시 표시한다.
 ///
 /// 입력:
 ///  - 창 자체는 IsHitTestVisible=False / Focusable=False(XAML)로 입력을 전혀 가로채지 않는다.
@@ -61,6 +62,11 @@ public partial class MagnifierWindow : Window
     [DllImport("user32.dll")] private static extern int GetWindowLong(IntPtr h, int i);
     [DllImport("user32.dll")] private static extern int SetWindowLong(IntPtr h, int i, int v);
 
+    // 화면 캡처에서 이 창을 제외(Win10 2004+). 성공하면 커서 정중앙에 겹쳐도 자기 캡처가 없다.
+    [DllImport("user32.dll")] private static extern bool SetWindowDisplayAffinity(IntPtr hWnd, uint dwAffinity);
+    [DllImport("user32.dll")] private static extern bool GetWindowDisplayAffinity(IntPtr hWnd, out uint dwAffinity);
+    private const uint WDA_EXCLUDEFROMCAPTURE = 0x11;
+
     // 가상 화면(모든 모니터 경계) 메트릭.
     private const int SM_XVIRTUALSCREEN = 76, SM_YVIRTUALSCREEN = 77,
                       SM_CXVIRTUALSCREEN = 78, SM_CYVIRTUALSCREEN = 79;
@@ -76,6 +82,9 @@ public partial class MagnifierWindow : Window
     // DPI 스케일(물리 px → DIP 환산). OnSourceInitialized 에서 갱신.
     private double _dpiScaleX = 1.0;
     private double _dpiScaleY = 1.0;
+
+    // 화면 캡처 제외(WDA)가 적용됐는지. true면 커서 정중앙에 겹쳐 띄운다.
+    private bool _excludedFromCapture;
 
     public MagnifierWindow()
     {
@@ -97,6 +106,12 @@ public partial class MagnifierWindow : Window
             IntPtr hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
             int ex = GetWindowLong(hwnd, GWL_EXSTYLE);
             SetWindowLong(hwnd, GWL_EXSTYLE, ex | WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW);
+
+            // 화면 캡처 제외(WDA_EXCLUDEFROMCAPTURE): AllowsTransparency 레이어드 창은 WPF가
+            // SourceInitialized 이후 합성 표면을 만들면서 affinity를 덮어쓸 수 있어, realize가
+            // 끝난 뒤(Loaded 우선순위) 지연 적용하고 되읽어 확인한다. 성공 시 커서 정중앙에 겹쳐 띄움.
+            Dispatcher.BeginInvoke(new Action(TryExcludeFromCapture),
+                System.Windows.Threading.DispatcherPriority.Loaded);
         };
         Closed += OnClosedCleanup;
     }
@@ -133,9 +148,33 @@ public partial class MagnifierWindow : Window
     public void ShowMagnifier()
     {
         Show();
+        // 표시할 때마다 캡처 제외를 재확인(Hide/Show 사이에 풀렸을 가능성 대비).
+        if (!_excludedFromCapture)
+            Dispatcher.BeginInvoke(new Action(TryExcludeFromCapture),
+                System.Windows.Threading.DispatcherPriority.Loaded);
         // 첫 프레임을 즉시 그려 빈 창이 잠깐 보이는 것을 막는다.
         CaptureAndRender();
         _timer.Start();
+    }
+
+    /// <summary>화면 캡처 제외를 적용하고 되읽어 확인한다(<see cref="_excludedFromCapture"/> 갱신).
+    /// 적용되면 커서 정중앙에 겹쳐 띄울 수 있다. 실패(구형 OS 등)면 오프셋+숨김 폴백을 유지.</summary>
+    private void TryExcludeFromCapture()
+    {
+        try
+        {
+            IntPtr hwnd = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+            if (hwnd == IntPtr.Zero)
+                return;
+
+            SetWindowDisplayAffinity(hwnd, WDA_EXCLUDEFROMCAPTURE);
+            _excludedFromCapture = GetWindowDisplayAffinity(hwnd, out uint affinity)
+                                   && affinity == WDA_EXCLUDEFROMCAPTURE;
+        }
+        catch
+        {
+            _excludedFromCapture = false;
+        }
     }
 
     /// <summary>돋보기를 숨기고 캡처를 멈춘다.</summary>
@@ -165,11 +204,13 @@ public partial class MagnifierWindow : Window
         srcLeft = Math.Clamp(srcLeft, vL, Math.Max(vL, vL + vW - srcSize));
         srcTop = Math.Clamp(srcTop, vT, Math.Max(vT, vT + vH - srcSize));
 
-        // 창 위치: 커서에서 우하단으로 오프셋(소스 영역과 겹치지 않게).
-        PositionWindowNear(cursor, srcSize);
+        // 창 위치: 캡처 제외 시 커서 정중앙, 아니면 우하단 오프셋.
+        PositionWindow(cursor, srcSize);
 
-        // 자기 캡처 방지: 캡처 직전 잠깐 숨김(겹침 상황 대비). Hidden 으로 깜빡임 최소화.
-        bool wasVisible = Visibility == Visibility.Visible;
+        // 자기 캡처 방지: 캡처 제외(WDA)가 적용된 경우 불필요. 미적용(구형 OS)일 때만
+        // 캡처 직전 잠깐 숨긴다(겹침 대비).
+        bool useHideHack = !_excludedFromCapture;
+        bool wasVisible = useHideHack && Visibility == Visibility.Visible;
         if (wasVisible)
             Visibility = Visibility.Hidden;
 
@@ -222,13 +263,24 @@ public partial class MagnifierWindow : Window
     }
 
     /// <summary>
-    /// 창을 커서 근처(우하단 오프셋)에 둔다. 물리 px → DIP 환산 후 Left/Top 설정.
+    /// 창 위치를 정한다. 캡처 제외(WDA)가 적용되면 커서 정중앙에(진짜 돋보기처럼),
+    /// 아니면 소스 영역과 겹치지 않게 우하단으로 오프셋한다. 물리 px → DIP 환산 후 Left/Top 설정.
     /// </summary>
-    private void PositionWindowNear(POINT cursor, int srcSize)
+    private void PositionWindow(POINT cursor, int srcSize)
     {
-        // 소스 영역 우하단 모서리 바깥에 창을 배치 → 소스와 겹치지 않음.
-        int physLeft = cursor.X + srcSize / 2 + CursorOffsetPx;
-        int physTop = cursor.Y + srcSize / 2 + CursorOffsetPx;
+        int physLeft, physTop;
+        if (_excludedFromCapture)
+        {
+            // 커서를 렌즈 정중앙에 둔다. 창이 커서를 덮어도 자기 캡처가 없으므로 안전.
+            physLeft = cursor.X - _viewSizePx / 2;
+            physTop = cursor.Y - _viewSizePx / 2;
+        }
+        else
+        {
+            // 폴백: 소스 영역 우하단 모서리 바깥에 배치 → 소스와 겹치지 않음.
+            physLeft = cursor.X + srcSize / 2 + CursorOffsetPx;
+            physTop = cursor.Y + srcSize / 2 + CursorOffsetPx;
+        }
 
         // 물리 px → DIP.
         Left = physLeft / _dpiScaleX;
