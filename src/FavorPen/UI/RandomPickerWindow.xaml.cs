@@ -82,6 +82,10 @@ public partial class RandomPickerWindow : Window
     private int _rollTick;
     private const int RollTicks = 22; // 흔들리는 횟수(약 2초)
 
+    private static readonly Brush InkBrush = Freeze(new SolidColorBrush(Color.FromRgb(0xED, 0xED, 0xED)));
+    private static readonly Brush FlashBrush = Freeze(new SolidColorBrush(Color.FromRgb(0xFF, 0xD0, 0x00))); // 멈추기 직전·최종 강조 금색
+    private static Brush Freeze(Brush b) { b.Freeze(); return b; }
+
     private void OnDraw(object sender, RoutedEventArgs e)
     {
         if (_roll != null && _roll.IsEnabled) return; // 이미 두구두구 중
@@ -123,6 +127,7 @@ public partial class RandomPickerWindow : Window
 
         // 흔들리는 동안 글자 크기가 안 바뀌도록 미리 맞춘다.
         ResultText.FontSize = pick <= 1 ? 110 : pick <= 3 ? 78 : pick <= 6 ? 54 : 40;
+        ResultText.Foreground = InkBrush; // 새 뽑기는 흰색으로 시작
         DrawButton.IsEnabled = false;
         StatusText.Text = "두구두구…";
 
@@ -140,7 +145,8 @@ public partial class RandomPickerWindow : Window
         if (_rollTick >= RollTicks)
         {
             _roll!.Stop();
-            // 최종 공개
+            // 최종 공개(금색 강조)
+            ResultText.Foreground = FlashBrush;
             ResultText.Text = string.Join("   ", _rollFinal.OrderBy(n => n));
             if (_rollExclude)
                 foreach (int n in _rollFinal) _excluded.Add(n);
@@ -157,6 +163,9 @@ public partial class RandomPickerWindow : Window
 
         // 흔들리는 임시 숫자(매 틱 다른 후보 조합).
         ResultText.Text = string.Join("   ", PickDistinct(_rollPool, _rollFinal.Count).OrderBy(n => n));
+
+        // 멈추기 직전 마지막 5틱은 색을 번쩍인다(흰색 ↔ 금색).
+        ResultText.Foreground = (RollTicks - _rollTick <= 5 && _rollTick % 2 == 0) ? FlashBrush : InkBrush;
 
         // 끝으로 갈수록 느려진다(ease-out): 30ms → ~230ms.
         double p = (double)_rollTick / RollTicks;

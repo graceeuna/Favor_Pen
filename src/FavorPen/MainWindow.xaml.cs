@@ -115,6 +115,11 @@ public partial class MainWindow : Window
 
     private void OnLoaded(object? sender, RoutedEventArgs e)
     {
+        // 그리기 중 커서가 안 보이는 문제 방지: InkCanvas 기본 잉크 커서(펜 굵기만 한 작은 점)
+        // 대신 항상 또렷이 보이는 십자(+) 커서를 쓴다.
+        InkSurface.UseCustomCursor = true;
+        InkSurface.Cursor = Cursors.Cross;
+
         // 그리기/객체/효과 서브시스템(모두 공유 _undo 타임라인에 합류)
         _strokeUndo = new UndoRedoManager(InkSurface, _undo);
         _objects = new ObjectLayer(InkSurface, OverlayLayer, _undo);
