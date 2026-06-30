@@ -169,7 +169,7 @@
 
             <Border Style="{StaticResource HSep}"/>
 
-            <!-- ── Quick 색상 스와치(2열로 wrap; SetQuickColors 로 채워짐) ── -->
+            <!-- ── Quick 색상 스와치(3열로 wrap; SetQuickColors 로 채워짐) ── -->
             <ItemsControl x:Name="ColorSwatches" Width="72" HorizontalAlignment="Center">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>

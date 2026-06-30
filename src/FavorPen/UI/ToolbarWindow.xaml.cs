@@ -257,9 +257,10 @@ public partial class ToolbarWindow : Window
 
             var swatch = new Button
             {
-                Width = 22,
-                Height = 22,
-                Margin = new Thickness(2, 0, 2, 0),
+                // 폭 72 컨테이너에 3개씩(3열 2행) 들어가도록 22→18로 축소(항목 폭 18+좌우2=22, 3×22=66).
+                Width = 18,
+                Height = 18,
+                Margin = new Thickness(2, 1, 2, 1),
                 Cursor = Cursors.Hand,
                 ToolTip = hex,
                 Background = new SolidColorBrush(color),
