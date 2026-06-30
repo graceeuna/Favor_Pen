@@ -183,12 +183,12 @@
             <!-- ── 굵기 슬라이더(1~40) + 값 ─────────────────────── -->
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                 <Slider x:Name="ThicknessSlider"
-                        Width="46" Minimum="1" Maximum="40" Value="3"
+                        Width="46" Minimum="1" Maximum="40" Value="9"
                         VerticalAlignment="Center"
                         IsSnapToTickEnabled="False"
                         ToolTip="굵기"
                         ValueChanged="OnThicknessChanged"/>
-                <TextBlock x:Name="ThicknessLabel" Text="3"
+                <TextBlock x:Name="ThicknessLabel" Text="9"
                            Foreground="{StaticResource Ink}" FontSize="11"
                            Width="20" TextAlignment="Center"
                            VerticalAlignment="Center"/>

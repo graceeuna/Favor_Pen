@@ -39,7 +39,7 @@ public class AppSettings
 {
     // ── 펜 ─────────────────────────────────────────────────────
     public string PenColor { get; set; } = "#FFFF0000";
-    public double PenWidth { get; set; } = 3;
+    public double PenWidth { get; set; } = 9;
 
     // ── 형광펜 ─────────────────────────────────────────────────
     public string HighlighterColor { get; set; } = "#80FFFF00";

@@ -363,7 +363,11 @@ public partial class ToolbarWindow : Window
         _suppressThicknessEvent = true;
         try
         {
-            ThicknessSlider.Value = Math.Clamp(width, ThicknessSlider.Minimum, ThicknessSlider.Maximum);
+            double v = Math.Clamp(width, ThicknessSlider.Minimum, ThicknessSlider.Maximum);
+            ThicknessSlider.Value = v;
+            // 값이 이미 같으면 ValueChanged 가 안 울려 라벨이 갱신되지 않으므로 여기서 직접 갱신.
+            if (ThicknessLabel != null)
+                ThicknessLabel.Text = ((int)Math.Round(v)).ToString();
         }
         finally
         {
