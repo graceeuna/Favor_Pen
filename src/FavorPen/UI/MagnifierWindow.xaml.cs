@@ -81,7 +81,13 @@ public partial class MagnifierWindow : Window
     private readonly DispatcherTimer _timer;
 
     private double _zoom = 2.0;
-    private int _viewSizePx = 320; // 정사각 한 변(물리 px 기준).
+    private int _viewSizePx = 320; // 뷰 높이(물리 px 기준). 너비는 가로로 더 넓게(아래 WidthFactor).
+
+    /// <summary>뷰 너비 = 높이 × 이 비율. 가로로 길쭉한 직사각 돋보기.</summary>
+    private const double WidthFactor = 2.0;
+
+    /// <summary>뷰 너비(물리 px). 높이(_viewSizePx)의 WidthFactor 배.</summary>
+    private int ViewWidthPx => (int)Math.Round(_viewSizePx * WidthFactor);
 
     // DPI 스케일(물리 px → DIP 환산). OnSourceInitialized 에서 갱신.
     private double _dpiScaleX = 1.0;
@@ -94,7 +100,7 @@ public partial class MagnifierWindow : Window
     {
         InitializeComponent();
 
-        Width = _viewSizePx;
+        Width = ViewWidthPx;
         Height = _viewSizePx;
 
         _timer = new DispatcherTimer(DispatcherPriority.Render)
@@ -127,15 +133,15 @@ public partial class MagnifierWindow : Window
             _zoom = zoom;
     }
 
-    /// <summary>돋보기 뷰의 정사각 한 변 크기(px)를 설정한다.</summary>
+    /// <summary>돋보기 뷰의 높이(px)를 설정한다. 너비는 자동으로 그 WidthFactor 배.</summary>
     public void SetViewSize(int px)
     {
         if (px <= 0)
             return;
 
         _viewSizePx = px;
-        // 창 크기는 DIP 이므로 물리 px → DIP 환산.
-        Width = _viewSizePx / _dpiScaleX;
+        // 창 크기는 DIP 이므로 물리 px → DIP 환산. 너비는 ViewWidthPx 사용.
+        Width = ViewWidthPx / _dpiScaleX;
         Height = _viewSizePx / _dpiScaleY;
     }
 
@@ -195,21 +201,22 @@ public partial class MagnifierWindow : Window
         if (!GetCursorPos(out POINT cursor))
             return;
 
-        // 소스 영역: 커서 중심, (뷰 한 변 / zoom) 크기. zoom 이 클수록 좁은 영역을 본다.
-        int srcSize = Math.Max(1, (int)Math.Round(_viewSizePx / _zoom));
-        int srcLeft = cursor.X - srcSize / 2;
-        int srcTop = cursor.Y - srcSize / 2;
+        // 소스 영역: 커서 중심, (뷰 크기 / zoom). 너비는 가로로 더 넓게. zoom 클수록 좁은 영역.
+        int srcW = Math.Max(1, (int)Math.Round(ViewWidthPx / _zoom));
+        int srcH = Math.Max(1, (int)Math.Round(_viewSizePx / _zoom));
+        int srcLeft = cursor.X - srcW / 2;
+        int srcTop = cursor.Y - srcH / 2;
 
         // 소스 영역을 가상 화면 경계 안으로 clamp(화면 밖 캡처=검은 영역/자기상 방지).
         int vL = GetSystemMetrics(SM_XVIRTUALSCREEN);
         int vT = GetSystemMetrics(SM_YVIRTUALSCREEN);
         int vW = GetSystemMetrics(SM_CXVIRTUALSCREEN);
         int vH = GetSystemMetrics(SM_CYVIRTUALSCREEN);
-        srcLeft = Math.Clamp(srcLeft, vL, Math.Max(vL, vL + vW - srcSize));
-        srcTop = Math.Clamp(srcTop, vT, Math.Max(vT, vT + vH - srcSize));
+        srcLeft = Math.Clamp(srcLeft, vL, Math.Max(vL, vL + vW - srcW));
+        srcTop = Math.Clamp(srcTop, vT, Math.Max(vT, vT + vH - srcH));
 
-        // 창 위치: 캡처 제외 시 커서 정중앙, 아니면 우하단 오프셋.
-        PositionWindow(cursor, srcSize);
+        // 창 위치: 캡처 제외 시 커서를 좌측상단 모서리 밖에, 아니면 우하단 오프셋.
+        PositionWindow(cursor, Math.Max(srcW, srcH));
 
         // 자기 캡처 방지: 캡처 제외(WDA)가 적용된 경우 불필요. 미적용(구형 OS)일 때만
         // 캡처 직전 잠깐 숨긴다(겹침 대비).
@@ -221,7 +228,7 @@ public partial class MagnifierWindow : Window
         BitmapSource? rendered = null;
         try
         {
-            rendered = CaptureRegion(srcLeft, srcTop, srcSize, srcSize);
+            rendered = CaptureRegion(srcLeft, srcTop, srcW, srcH);
         }
         catch
         {
@@ -267,8 +274,9 @@ public partial class MagnifierWindow : Window
     }
 
     /// <summary>
-    /// 창 위치를 정한다. 캡처 제외(WDA)가 적용되면 커서 정중앙에(진짜 돋보기처럼),
-    /// 아니면 소스 영역과 겹치지 않게 우하단으로 오프셋한다. 물리 px → DIP 환산 후 Left/Top 설정.
+    /// 창 위치를 정한다. 캡처 제외(WDA)가 적용되면 커서를 좌측상단 모서리 밖에 두고 우하단으로
+    /// 펼치며(화면 가장자리에선 반대쪽으로 뒤집음), 아니면 소스 영역과 겹치지 않게 우하단으로
+    /// 오프셋한다. 물리 px → DIP 환산 후 Left/Top 설정.
     /// </summary>
     private void PositionWindow(POINT cursor, int srcSize)
     {
@@ -286,8 +294,8 @@ public partial class MagnifierWindow : Window
             int vT = GetSystemMetrics(SM_YVIRTUALSCREEN);
             int vW = GetSystemMetrics(SM_CXVIRTUALSCREEN);
             int vH = GetSystemMetrics(SM_CYVIRTUALSCREEN);
-            if (physLeft + _viewSizePx > vL + vW)
-                physLeft = cursor.X - CornerGapPx - _viewSizePx;
+            if (physLeft + ViewWidthPx > vL + vW)
+                physLeft = cursor.X - CornerGapPx - ViewWidthPx;
             if (physTop + _viewSizePx > vT + vH)
                 physTop = cursor.Y - CornerGapPx - _viewSizePx;
         }
@@ -312,8 +320,8 @@ public partial class MagnifierWindow : Window
             _dpiScaleY = source.CompositionTarget.TransformToDevice.M22;
         }
 
-        // DPI 확정 후 창 크기를 DIP 기준으로 재설정.
-        Width = _viewSizePx / _dpiScaleX;
+        // DPI 확정 후 창 크기를 DIP 기준으로 재설정(너비는 ViewWidthPx).
+        Width = ViewWidthPx / _dpiScaleX;
         Height = _viewSizePx / _dpiScaleY;
     }
 
