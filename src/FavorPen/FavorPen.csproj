@@ -12,6 +12,8 @@
     <Product>FavorPen</Product>
     <Version>0.1.0</Version>
     <Description>무설치 화면 주석 도구 (Epic Pen 호환 기능 클론)</Description>
+    <!-- 실행파일(.exe) 아이콘 — 작업표시줄/탐색기/Alt+Tab에 표시 -->
+    <ApplicationIcon>Assets\favorpen.ico</ApplicationIcon>
   </PropertyGroup>
 
   <!-- WPF + WinForms 동시 사용 시 System.Drawing / System.Windows.Forms 전역(implicit) using이
@@ -26,6 +28,8 @@
        넥슨 메이플스토리 서체 — 개인·상업 무료, 원형 그대로 배포 허용. 내부 패밀리명 "Maplestory". -->
   <ItemGroup>
     <Resource Include="Assets\Fonts\Maplestory-Bold.ttf" />
+    <!-- 앱 아이콘(.ico) — 창/트레이에서 pack URI로 로드 -->
+    <Resource Include="Assets\favorpen.ico" />
   </ItemGroup>
 
   <!--

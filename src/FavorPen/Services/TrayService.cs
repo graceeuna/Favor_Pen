@@ -80,9 +80,32 @@ public class TrayService : IDisposable
 
     [DllImport("user32.dll")] private static extern bool DestroyIcon(IntPtr handle);
 
-    /// <summary>트레이용 아이콘을 코드로 그린다: 파란 원 배경 + 흰색 펜(✎) 글리프.
-    /// 다른 기본 회색 아이콘들과 한눈에 구분되도록.</summary>
+    /// <summary>트레이용 아이콘을 앱 아이콘(.ico, FavorPen.png 기반)에서 로드한다.
+    /// 작업표시줄/창과 동일한 아이콘이 트레이에도 보이도록. 리소스 로드 실패 시
+    /// 아래 <see cref="DrawFallbackIcon"/>(파란 원+펜)으로 대체한다.</summary>
     private static Icon BuildTrayIcon()
+    {
+        try
+        {
+            var uri = new Uri("pack://application:,,,/FavorPen;component/Assets/favorpen.ico");
+            var info = System.Windows.Application.GetResourceStream(uri);
+            if (info != null)
+            {
+                using var stream = info.Stream;
+                // 트레이/알림영역 권장 크기에 가장 가까운 해상도를 .ico에서 선택.
+                return new Icon(stream, SystemInformation.SmallIconSize);
+            }
+        }
+        catch
+        {
+            // 무시하고 폴백 아이콘 사용.
+        }
+
+        return DrawFallbackIcon();
+    }
+
+    /// <summary>리소스 로드 실패 시 사용하는 코드 생성 아이콘: 파란 원 배경 + 흰색 펜(✎).</summary>
+    private static Icon DrawFallbackIcon()
     {
         using var bmp = new Bitmap(32, 32);
         using (var g = Graphics.FromImage(bmp))
