@@ -71,8 +71,12 @@ public partial class MagnifierWindow : Window
     private const int SM_XVIRTUALSCREEN = 76, SM_YVIRTUALSCREEN = 77,
                       SM_CXVIRTUALSCREEN = 78, SM_CYVIRTUALSCREEN = 79;
 
-    /// <summary>창과 커서 사이 오프셋(물리 px). 소스 영역과 창이 겹치지 않게 한다.</summary>
+    /// <summary>창과 커서 사이 오프셋(물리 px). 소스 영역과 창이 겹치지 않게 한다(폴백 경로).</summary>
     private const int CursorOffsetPx = 28;
+
+    /// <summary>캡처 제외(WDA) 경로에서 커서와 돋보기 좌측상단 모서리 사이 간격(물리 px).
+    /// 커서가 돋보기 모서리 살짝 바깥(위)에 오게 해 커서/툴바가 가려지지 않도록.</summary>
+    private const int CornerGapPx = 16;
 
     private readonly DispatcherTimer _timer;
 
@@ -271,13 +275,25 @@ public partial class MagnifierWindow : Window
         int physLeft, physTop;
         if (_excludedFromCapture)
         {
-            // 커서를 렌즈 정중앙에 둔다. 창이 커서를 덮어도 자기 캡처가 없으므로 안전.
-            physLeft = cursor.X - _viewSizePx / 2;
-            physTop = cursor.Y - _viewSizePx / 2;
+            // 커서가 돋보기를 덮으면 그 아래 요소(툴바 등)를 못 보고 클릭 대상도 가려진다.
+            // 그래서 커서를 돋보기 좌측상단 모서리 살짝 위에 두고, 돋보기는 우하단으로 펼친다.
+            // (확대 소스 영역은 항상 커서 중심이므로 커서 주변이 그대로 확대돼 보인다.)
+            physLeft = cursor.X + CornerGapPx;
+            physTop = cursor.Y + CornerGapPx;
+
+            // 화면 밖으로 넘치면 반대쪽으로 뒤집어 배치(커서는 반대 모서리 쪽에 위치).
+            int vL = GetSystemMetrics(SM_XVIRTUALSCREEN);
+            int vT = GetSystemMetrics(SM_YVIRTUALSCREEN);
+            int vW = GetSystemMetrics(SM_CXVIRTUALSCREEN);
+            int vH = GetSystemMetrics(SM_CYVIRTUALSCREEN);
+            if (physLeft + _viewSizePx > vL + vW)
+                physLeft = cursor.X - CornerGapPx - _viewSizePx;
+            if (physTop + _viewSizePx > vT + vH)
+                physTop = cursor.Y - CornerGapPx - _viewSizePx;
         }
         else
         {
-            // 폴백: 소스 영역 우하단 모서리 바깥에 배치 → 소스와 겹치지 않음.
+            // 폴백(구형 OS): 소스 영역 우하단 모서리 바깥에 배치 → 소스와 겹치지 않음.
             physLeft = cursor.X + srcSize / 2 + CursorOffsetPx;
             physTop = cursor.Y + srcSize / 2 + CursorOffsetPx;
         }
