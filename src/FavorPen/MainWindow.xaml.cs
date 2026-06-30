@@ -47,7 +47,7 @@ public partial class MainWindow : Window
     private enum Hk
     {
         Toggle = 1, Pen, Highlighter, Eraser, Undo, Redo, Clear, Screenshot, Exit,
-        Whiteboard, Ghost, Magnifier, Halo, Timer, Random
+        Whiteboard, Ghost, Magnifier, Halo, Timer, Random, Recover
     }
 
     private IntPtr _hwnd;
@@ -649,6 +649,7 @@ public partial class MainWindow : Window
         Reg(Hk.Redo, Key.Y, alt);
         Reg(Hk.Screenshot, Key.S, alt);
         Reg(Hk.Whiteboard, Key.W, alt);
+        Reg(Hk.Recover, Key.T, alt); // 툴바 복구(T=Toolbar). 브라우저 Ctrl+Shift+T 회피 위해 Ctrl+Alt.
     }
 
     private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
@@ -672,6 +673,7 @@ public partial class MainWindow : Window
             case Hk.Halo: ToggleHalo(); break;
             case Hk.Timer: ToggleTimer(); break;
             case Hk.Random: ToggleRandom(); break;
+            case Hk.Recover: RecoverToolbar(); break;
             default: handled = false; break;
         }
         return IntPtr.Zero;
