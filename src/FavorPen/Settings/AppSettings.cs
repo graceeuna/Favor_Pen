@@ -105,4 +105,10 @@ public class AppSettings
     public int TimerDurationSeconds { get; set; } = 300;
     /// <summary>타이머 숫자 글자 크기(사용자 지정).</summary>
     public double TimerFontSize { get; set; } = 140;
+
+    // ── 랜덤 뽑기 ──────────────────────────────────────────────
+    /// <summary>마지막 번호 범위 입력(예: "1-20, 41-60").</summary>
+    public string RandomRanges { get; set; } = "1-20";
+    /// <summary>마지막 뽑을 인원.</summary>
+    public int RandomCount { get; set; } = 1;
 }

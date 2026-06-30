@@ -1,0 +1,122 @@
+<Window x:Class="FavorPen.UI.RandomPickerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="FavorPen 랜덤 뽑기"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ResizeMode="NoResize"
+        SizeToContent="WidthAndHeight"
+        WindowStartupLocation="Manual">
+
+    <Window.Resources>
+        <SolidColorBrush x:Key="Ink" Color="#FFEDEDED"/>
+        <SolidColorBrush x:Key="Sub" Color="#FFB0B0B0"/>
+
+        <!-- 작은 컨트롤 버튼 -->
+        <Style x:Key="Ctl" TargetType="Button">
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="MinWidth" Value="34"/>
+            <Setter Property="Padding" Value="10,0"/>
+            <Setter Property="Margin" Value="3,0"/>
+            <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+            <Setter Property="Background" Value="#33FFFFFF"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" CornerRadius="6"
+                                Background="{TemplateBinding Background}"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#55FFFFFF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- 강조(뽑기) 버튼 -->
+        <Style x:Key="Primary" TargetType="Button" BasedOn="{StaticResource Ctl}">
+            <Setter Property="Background" Value="#FF3D7DFF"/>
+            <Setter Property="Height" Value="38"/>
+            <Setter Property="Padding" Value="22,0"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="16"/>
+        </Style>
+
+        <!-- 입력 박스 -->
+        <Style x:Key="Box" TargetType="TextBox">
+            <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+            <Setter Property="Background" Value="#22FFFFFF"/>
+            <Setter Property="CaretBrush" Value="{StaticResource Ink}"/>
+            <Setter Property="BorderBrush" Value="#44FFFFFF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="FontSize" Value="15"/>
+        </Style>
+    </Window.Resources>
+
+    <!-- 가운데 정렬 둥근 패널. 빈 영역 드래그로 이동(기본은 화면 중앙). -->
+    <Border x:Name="Root" CornerRadius="18" Background="#E6101010"
+            Padding="28,20" MouseLeftButtonDown="OnDrag">
+        <Border.Effect>
+            <DropShadowEffect Color="Black" BlurRadius="22" ShadowDepth="0" Opacity="0.6"/>
+        </Border.Effect>
+
+        <StackPanel HorizontalAlignment="Center" MinWidth="330">
+
+            <TextBlock Text="🎲 랜덤 뽑기" Foreground="{StaticResource Sub}"
+                       FontSize="14" HorizontalAlignment="Center" Margin="0,0,0,8"/>
+
+            <!-- 결과(큰 글씨, 메이플스토리체) -->
+            <Border Background="#1AFFFFFF" CornerRadius="14" Padding="12,6" MinHeight="130" Margin="0,0,0,16">
+                <TextBlock x:Name="ResultText" Text="?"
+                           FontFamily="pack://application:,,,/FavorPen;component/Assets/Fonts/#Maplestory"
+                           FontWeight="Bold" FontSize="110" Foreground="{StaticResource Ink}"
+                           TextWrapping="Wrap" TextAlignment="Center"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+
+            <!-- 번호 범위 입력 -->
+            <TextBlock Text="번호 범위 (예: 1-20, 41-60)" Foreground="{StaticResource Sub}"
+                       FontSize="12" Margin="2,0,0,4"/>
+            <TextBox x:Name="RangeBox" Style="{StaticResource Box}" Text="1-20" Margin="0,0,0,14"/>
+
+            <!-- 뽑을 인원 -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,12">
+                <TextBlock Text="뽑을 인원" Foreground="{StaticResource Sub}" FontSize="13"
+                           VerticalAlignment="Center" Margin="0,0,10,0"/>
+                <Button Style="{StaticResource Ctl}" Content="−" ToolTip="인원 감소" Click="OnCountMinus"/>
+                <TextBlock x:Name="CountText" Text="1명" Foreground="{StaticResource Ink}"
+                           FontSize="16" FontWeight="Bold" Width="52" TextAlignment="Center"
+                           VerticalAlignment="Center"/>
+                <Button Style="{StaticResource Ctl}" Content="+" ToolTip="인원 증가" Click="OnCountPlus"/>
+            </StackPanel>
+
+            <!-- 제외 옵션 -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,16">
+                <CheckBox x:Name="ExcludeCheck" Content="뽑은 번호 제외(중복 방지)"
+                          Foreground="{StaticResource Ink}" VerticalAlignment="Center"/>
+                <Button Style="{StaticResource Ctl}" Content="↺ 초기화" ToolTip="제외 목록 비우기"
+                        Click="OnResetExcluded" Margin="12,0,0,0"/>
+            </StackPanel>
+
+            <!-- 뽑기 / 닫기 -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                <Button x:Name="DrawButton" Style="{StaticResource Primary}" Content="🎲 뽑기" Click="OnDraw"/>
+                <Button Style="{StaticResource Ctl}" Content="✕ 닫기" Click="OnCloseClick"/>
+            </StackPanel>
+
+            <TextBlock x:Name="StatusText" Text="" Foreground="{StaticResource Sub}"
+                       FontSize="11" HorizontalAlignment="Center" Margin="0,8,0,0"/>
+        </StackPanel>
+    </Border>
+</Window>

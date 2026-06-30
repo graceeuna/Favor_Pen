@@ -42,7 +42,7 @@ public partial class MainWindow : Window
     private enum Hk
     {
         Toggle = 1, Pen, Highlighter, Eraser, Undo, Redo, Clear, Screenshot, Exit,
-        Whiteboard, Ghost, Magnifier, Halo, Timer
+        Whiteboard, Ghost, Magnifier, Halo, Timer, Random
     }
 
     private IntPtr _hwnd;
@@ -60,6 +60,7 @@ public partial class MainWindow : Window
     private HighlightCursor? _halo;
     private MagnifierWindow? _magnifier;
     private TimerWindow? _timerWin;
+    private RandomPickerWindow? _randomWin;
     private HaloSettingsWindow? _haloSettings;
     private ToolbarWindow? _toolbar;
     private TrayService? _tray;
@@ -156,6 +157,7 @@ public partial class MainWindow : Window
         _toolbar.HaloToggleRequested += ToggleHalo;
         _toolbar.HaloSettingsRequested += OpenHaloSettings;
         _toolbar.TimerToggleRequested += ToggleTimer;
+        _toolbar.RandomToggleRequested += ToggleRandom;
 
         _toolbar.SetQuickColors(_settings.QuickColors);
         _toolbar.Show();
@@ -499,6 +501,20 @@ public partial class MainWindow : Window
         _toolbar?.SetTimerActive(_timerWin.IsVisible);
     }
 
+    // ── 랜덤 뽑기(발표용 번호 추첨) ────────────────────────
+    private void ToggleRandom()
+    {
+        if (_randomWin == null)
+        {
+            _randomWin = new RandomPickerWindow { Owner = this };
+            _randomWin.RangesText = _settings.RandomRanges;
+            _randomWin.Count = _settings.RandomCount;
+            _randomWin.IsVisibleChanged += (_, _) => _toolbar?.SetRandomActive(_randomWin!.IsVisible);
+        }
+        _randomWin.Toggle();
+        _toolbar?.SetRandomActive(_randomWin.IsVisible);
+    }
+
     // ── 하이라이트 커서/헤일로(FR-21) ──────────────────────
     private void ToggleHalo()
     {
@@ -574,6 +590,7 @@ public partial class MainWindow : Window
         Reg(Hk.Magnifier, Key.M, shift);
         Reg(Hk.Halo, Key.H, shift);
         Reg(Hk.Timer, Key.C, shift);
+        Reg(Hk.Random, Key.R, shift);
         Reg(Hk.Exit, Key.Q, shift);
 
         // ── Ctrl+Alt (흔한 앱 단축키와 겹쳐 유지) ──
@@ -603,6 +620,7 @@ public partial class MainWindow : Window
             case Hk.Magnifier: ToggleMagnifier(); break;
             case Hk.Halo: ToggleHalo(); break;
             case Hk.Timer: ToggleTimer(); break;
+            case Hk.Random: ToggleRandom(); break;
             default: handled = false; break;
         }
         return IntPtr.Zero;
@@ -652,6 +670,11 @@ public partial class MainWindow : Window
             _settings.TimerDurationSeconds = _timerWin.DurationSeconds;
             _settings.TimerFontSize = _timerWin.FontSizeValue;
         }
+        if (_randomWin != null)
+        {
+            _settings.RandomRanges = _randomWin.RangesText;
+            _settings.RandomCount = _randomWin.Count;
+        }
         SettingsStore.Save(_settings);
 
         SystemEvents.DisplaySettingsChanged -= OnDisplayChanged;
@@ -662,6 +685,7 @@ public partial class MainWindow : Window
         _halo?.Disable();
         _magnifier?.Close();
         _timerWin?.Close();
+        _randomWin?.Close();
         _haloSettings?.Close();
         _tray?.Dispose();
         _toolbar?.Close();

@@ -219,6 +219,8 @@
                         Click="OnMagnifierClick" MouseRightButtonUp="OnMagnifierRightClick"/>
                 <Button x:Name="TimerButton" Style="{StaticResource ToolButton}"
                         Content="&#x23F1;" ToolTip="타이머: 화면 중앙 카운트다운 (Ctrl+Shift+C)" Click="OnTimerClick"/>
+                <Button x:Name="RandomButton" Style="{StaticResource ToolButton}"
+                        Content="&#x1F3B2;" ToolTip="랜덤 뽑기: 발표용 번호 추첨 (Ctrl+Shift+R)" Click="OnRandomClick"/>
                 <Button x:Name="HaloButton" Style="{StaticResource ToolButton}"
                         Content="&#x25CE;" ToolTip="마우스 하이라이트(헤일로): 좌클릭 켜기/끄기 (Ctrl+Shift+H) · 우클릭 색·크기 설정"
                         Click="OnHaloClick" MouseRightButtonUp="OnHaloRightClick"/>
