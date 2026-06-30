@@ -38,6 +38,11 @@ public partial class MainWindow : Window
     [DllImport("user32.dll")] private static extern int SetWindowLong(IntPtr h, int i, int v);
     [DllImport("user32.dll")] private static extern bool RegisterHotKey(IntPtr h, int id, uint mod, uint vk);
     [DllImport("user32.dll")] private static extern bool UnregisterHotKey(IntPtr h, int id);
+    [DllImport("user32.dll")] private static extern bool SetWindowPos(IntPtr h, IntPtr after, int x, int y, int cx, int cy, uint flags);
+
+    // 툴바를 최상단(topmost)으로 재확정해 전체화면 오버레이 뒤로 가려지는 것을 막는다.
+    private static readonly IntPtr HWND_TOPMOST = new(-1);
+    private const uint SWP_NOSIZE = 0x0001, SWP_NOMOVE = 0x0002, SWP_NOACTIVATE = 0x0010;
 
     private enum Hk
     {
@@ -72,6 +77,33 @@ public partial class MainWindow : Window
         CoverVirtualScreen();
         Loaded += OnLoaded;
         Closed += OnClosed;
+        // 그릴 때(오버레이 활성화) 툴바가 전체화면 오버레이 뒤로 가려지지 않도록 최상단 재확정.
+        Activated += (_, _) => EnsureToolbarTop();
+    }
+
+    /// <summary>툴바가 보이는 상태면 z-order 최상단으로 재확정(가려짐 방지, 깜빡임 없음).</summary>
+    private void EnsureToolbarTop()
+    {
+        if (_toolbar == null || _ghost || !_toolbar.IsVisible) return;
+        IntPtr h = new WindowInteropHelper(_toolbar).Handle;
+        if (h != IntPtr.Zero)
+            SetWindowPos(h, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+    }
+
+    /// <summary>툴바를 어떤 상태(숨김·화면 밖·접힘·고스트·가려짐)에서든 되살린다(트레이 복구용).</summary>
+    private void RecoverToolbar()
+    {
+        if (_toolbar == null) return;
+        _ghost = false;
+        var (l, t) = ClampToScreen(_toolbar.Left, _toolbar.Top);
+        _toolbar.Left = l;
+        _toolbar.Top = t;
+        _toolbar.Expand();
+        _toolbar.Show();
+        _toolbar.Topmost = true;
+        _toolbar.Activate();
+        EnsureToolbarTop();
+        _tray?.SetModeText("툴바 복구됨");
     }
 
     private void CoverVirtualScreen()
@@ -416,7 +448,21 @@ public partial class MainWindow : Window
     private void ToggleToolbar()
     {
         if (_toolbar == null) return;
-        if (_toolbar.IsVisible) _toolbar.Hide(); else _toolbar.Show();
+        // 제대로 보이는 상태면 숨기고, 아니면(숨김·화면 밖·고스트·가려짐) 무조건 복구한다.
+        if (_toolbar.IsVisible && !_ghost && IsToolbarOnScreen())
+            _toolbar.Hide();
+        else
+            RecoverToolbar();
+    }
+
+    /// <summary>툴바 좌상단이 현재 가상 화면 안쪽에 있는지(=실제로 보이는지) 판정.</summary>
+    private bool IsToolbarOnScreen()
+    {
+        if (_toolbar == null) return false;
+        double vsL = SystemParameters.VirtualScreenLeft, vsT = SystemParameters.VirtualScreenTop;
+        double vsR = vsL + SystemParameters.VirtualScreenWidth, vsB = vsT + SystemParameters.VirtualScreenHeight;
+        return _toolbar.Left >= vsL && _toolbar.Top >= vsT
+            && _toolbar.Left <= vsR - 50 && _toolbar.Top <= vsB - 50;
     }
 
     // ── 고스트 모드(FR-19): 툴바·UI 숨기고 핫키만 ──────────

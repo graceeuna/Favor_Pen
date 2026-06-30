@@ -32,7 +32,7 @@ public class TrayService : IDisposable
     public TrayService(string tooltip)
     {
         var menu = new ContextMenuStrip();
-        menu.Items.Add("보이기/숨기기", null, (_, _) => ToggleRequested?.Invoke());
+        menu.Items.Add("툴바 복구/숨기기", null, (_, _) => ToggleRequested?.Invoke());
         menu.Items.Add("스크린샷", null, (_, _) => ScreenshotRequested?.Invoke());
         menu.Items.Add("전체 지우기", null, (_, _) => ClearRequested?.Invoke());
         menu.Items.Add(new ToolStripSeparator());

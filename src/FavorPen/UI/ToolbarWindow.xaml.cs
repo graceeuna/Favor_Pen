@@ -171,6 +171,14 @@ public partial class ToolbarWindow : Window
 
     /// <summary>눈 버튼: 툴바 본체(CollapsibleContent)를 접거나 펼친다.
     /// 접으면 드래그 핸들과 눈 버튼만 남아 화면을 거의 가리지 않는다(SizeToContent 가 창을 줄임).</summary>
+    /// <summary>접혀 있으면 펼친다(외부에서 툴바를 복구할 때 호출).</summary>
+    public void Expand()
+    {
+        CollapsibleContent.Visibility = Visibility.Visible;
+        CollapseButton.Content = "\U0001F441"; // 뜬 눈
+        CollapseButton.ToolTip = "툴바 접기 (눈 뜸 = 펼쳐짐)";
+    }
+
     private void OnCollapseClick(object sender, RoutedEventArgs e)
     {
         bool collapsing = CollapsibleContent.Visibility == Visibility.Visible;
