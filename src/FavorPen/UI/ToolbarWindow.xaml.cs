@@ -62,6 +62,7 @@ public partial class ToolbarWindow : Window
     public event Action? HaloSettingsRequested;      // 헤일로 색·크기 설정(우클릭)
     public event Action? TimerToggleRequested;       // 타이머(카운트다운)
     public event Action? RandomToggleRequested;      // 랜덤 뽑기
+    public event Action? NoiseToggleRequested;       // 소음 신호등
 
     public ToolbarWindow()
     {
@@ -218,6 +219,7 @@ public partial class ToolbarWindow : Window
     }
     private void OnTimerClick(object sender, RoutedEventArgs e) => TimerToggleRequested?.Invoke();
     private void OnRandomClick(object sender, RoutedEventArgs e) => RandomToggleRequested?.Invoke();
+    private void OnNoiseClick(object sender, RoutedEventArgs e) => NoiseToggleRequested?.Invoke();
 
     private void OnExitClick(object sender, RoutedEventArgs e) => ExitRequested?.Invoke();
 
@@ -408,6 +410,7 @@ public partial class ToolbarWindow : Window
     public void SetHaloActive(bool on) => HaloButton.Background = on ? ActiveBrush : IdleBrush;
     public void SetTimerActive(bool on) => TimerButton.Background = on ? ActiveBrush : IdleBrush;
     public void SetRandomActive(bool on) => RandomButton.Background = on ? ActiveBrush : IdleBrush;
+    public void SetNoiseActive(bool on) => NoiseButton.Background = on ? ActiveBrush : IdleBrush;
 
     /// <summary>현재 도형 채움 상태를 글리프로 표시(없음/컬러/외곽선/흰/검).</summary>
     public void SetFillMode(FillMode mode)

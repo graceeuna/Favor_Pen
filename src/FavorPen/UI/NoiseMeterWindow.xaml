@@ -1,0 +1,133 @@
+<Window x:Class="FavorPen.UI.NoiseMeterWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="FavorPen 소음 신호등"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ResizeMode="NoResize"
+        SizeToContent="WidthAndHeight"
+        WindowStartupLocation="Manual">
+
+    <Window.Resources>
+        <SolidColorBrush x:Key="Ink" Color="#FFEDEDED"/>
+        <SolidColorBrush x:Key="Sub" Color="#FFB0B0B0"/>
+
+        <!-- 작은 컨트롤 버튼 -->
+        <Style x:Key="Ctl" TargetType="Button">
+            <Setter Property="Height" Value="32"/>
+            <Setter Property="MinWidth" Value="34"/>
+            <Setter Property="Padding" Value="10,0"/>
+            <Setter Property="Margin" Value="3,0"/>
+            <Setter Property="Foreground" Value="{StaticResource Ink}"/>
+            <Setter Property="Background" Value="#33FFFFFF"/>
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" CornerRadius="6"
+                                Background="{TemplateBinding Background}"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#55FFFFFF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="Primary" TargetType="Button" BasedOn="{StaticResource Ctl}">
+            <Setter Property="Background" Value="#FF3D7DFF"/>
+            <Setter Property="Padding" Value="16,0"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+        </Style>
+    </Window.Resources>
+
+    <!-- 둥근 패널. 빈 영역 드래그로 이동. -->
+    <Border x:Name="Root" CornerRadius="18" Background="#E6101010"
+            Padding="22,18" MouseLeftButtonDown="OnDrag">
+        <Border.Effect>
+            <DropShadowEffect Color="Black" BlurRadius="22" ShadowDepth="0" Opacity="0.6"/>
+        </Border.Effect>
+
+        <StackPanel>
+            <TextBlock Text="🚦 소음 신호등" Foreground="{StaticResource Sub}"
+                       FontSize="14" HorizontalAlignment="Center" Margin="0,0,0,12"/>
+
+            <StackPanel Orientation="Horizontal">
+
+                <!-- 신호등 몸체 -->
+                <Border Background="#FF17171A" CornerRadius="16" Padding="12" VerticalAlignment="Top">
+                    <StackPanel>
+                        <Ellipse x:Name="LampRed" Width="76" Height="76" Margin="0,0,0,10"/>
+                        <Ellipse x:Name="LampYellow" Width="76" Height="76" Margin="0,0,0,10"/>
+                        <Ellipse x:Name="LampGreen" Width="76" Height="76"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- 정보/조작 -->
+                <StackPanel Margin="18,0,0,0" MinWidth="220" VerticalAlignment="Top">
+
+                    <!-- 상태 문구 -->
+                    <TextBlock x:Name="StatusText" Text="시작을 누르세요"
+                               FontFamily="pack://application:,,,/FavorPen;component/Assets/Fonts/#Maplestory"
+                               FontWeight="Bold" FontSize="34" Foreground="{StaticResource Ink}"
+                               TextAlignment="Center" HorizontalAlignment="Center" Margin="0,4,0,6"/>
+
+                    <!-- 레벨 수치 -->
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,14">
+                        <TextBlock x:Name="LevelText" Text="0"
+                                   FontSize="40" FontWeight="Bold" Foreground="{StaticResource Ink}"
+                                   VerticalAlignment="Center"/>
+                        <TextBlock Text="dB" Foreground="{StaticResource Sub}" FontSize="16"
+                                   VerticalAlignment="Bottom" Margin="4,0,0,8"/>
+                    </StackPanel>
+
+                    <!-- 레벨 막대 -->
+                    <Border Background="#22FFFFFF" CornerRadius="6" Height="12" Margin="0,0,0,16">
+                        <Border x:Name="LevelBar" Background="#FF43D13B" CornerRadius="6"
+                                HorizontalAlignment="Left" Width="0"/>
+                    </Border>
+
+                    <!-- 민감도 -->
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,10">
+                        <TextBlock Text="민감도" Foreground="{StaticResource Sub}" FontSize="13"
+                                   VerticalAlignment="Center" Margin="0,0,10,0"/>
+                        <Button Style="{StaticResource Ctl}" Content="−" ToolTip="덜 예민하게" Click="OnSensMinus"/>
+                        <TextBlock x:Name="SensText" Text="3" Foreground="{StaticResource Ink}"
+                                   FontSize="17" FontWeight="Bold" Width="40" TextAlignment="Center"
+                                   VerticalAlignment="Center"/>
+                        <Button Style="{StaticResource Ctl}" Content="+" ToolTip="더 예민하게" Click="OnSensPlus"/>
+                    </StackPanel>
+
+                    <!-- 경고 -->
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,14">
+                        <TextBlock Text="⚠ 경고" Foreground="{StaticResource Sub}" FontSize="13"
+                                   VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <TextBlock x:Name="WarnText" Text="0회" Foreground="{StaticResource Ink}"
+                                   FontSize="15" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                        <CheckBox x:Name="SoundCheck" Content="경고음" IsChecked="True"
+                                  Foreground="{StaticResource Ink}" VerticalAlignment="Center" FontSize="12"/>
+                    </StackPanel>
+
+                    <!-- 시작·닫기 -->
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                        <Button x:Name="MicButton" Style="{StaticResource Primary}"
+                                Content="▶ 시작" Click="OnToggleMic"/>
+                        <Button Style="{StaticResource Ctl}" Content="✕ 닫기" Click="OnCloseClick"/>
+                    </StackPanel>
+
+                    <TextBlock x:Name="MicStatus" Text="" Foreground="{StaticResource Sub}"
+                               FontSize="11" HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                </StackPanel>
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</Window>

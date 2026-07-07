@@ -47,7 +47,7 @@ public partial class MainWindow : Window
     private enum Hk
     {
         Toggle = 1, Pen, Highlighter, Eraser, Undo, Redo, Clear, Screenshot, Exit,
-        Whiteboard, Ghost, Magnifier, Halo, Timer, Random, Recover
+        Whiteboard, Ghost, Magnifier, Halo, Timer, Random, Noise, Recover
     }
 
     private IntPtr _hwnd;
@@ -66,6 +66,7 @@ public partial class MainWindow : Window
     private MagnifierWindow? _magnifier;
     private TimerWindow? _timerWin;
     private RandomPickerWindow? _randomWin;
+    private NoiseMeterWindow? _noiseWin;
     private HaloSettingsWindow? _haloSettings;
     private ToolbarWindow? _toolbar;
     private TrayService? _tray;
@@ -195,6 +196,7 @@ public partial class MainWindow : Window
         _toolbar.HaloSettingsRequested += OpenHaloSettings;
         _toolbar.TimerToggleRequested += ToggleTimer;
         _toolbar.RandomToggleRequested += ToggleRandom;
+        _toolbar.NoiseToggleRequested += ToggleNoise;
 
         _toolbar.SetQuickColors(_settings.QuickColors);
         _toolbar.Show();
@@ -566,6 +568,19 @@ public partial class MainWindow : Window
         _toolbar?.SetRandomActive(_randomWin.IsVisible);
     }
 
+    // ── 소음 신호등(모둠활동 소음 측정) ────────────────────
+    private void ToggleNoise()
+    {
+        if (_noiseWin == null)
+        {
+            _noiseWin = new NoiseMeterWindow { Owner = this };
+            _noiseWin.Sensitivity = _settings.NoiseSensitivity;
+            _noiseWin.IsVisibleChanged += (_, _) => _toolbar?.SetNoiseActive(_noiseWin!.IsVisible);
+        }
+        _noiseWin.Toggle();
+        _toolbar?.SetNoiseActive(_noiseWin.IsVisible);
+    }
+
     // ── 하이라이트 커서/헤일로(FR-21) ──────────────────────
     private void ToggleHalo()
     {
@@ -642,6 +657,7 @@ public partial class MainWindow : Window
         Reg(Hk.Halo, Key.H, shift);
         Reg(Hk.Timer, Key.C, shift);
         Reg(Hk.Random, Key.R, shift);
+        Reg(Hk.Noise, Key.N, shift);
         Reg(Hk.Exit, Key.Q, shift);
 
         // ── Ctrl+Alt (흔한 앱 단축키와 겹쳐 유지) ──
@@ -673,6 +689,7 @@ public partial class MainWindow : Window
             case Hk.Halo: ToggleHalo(); break;
             case Hk.Timer: ToggleTimer(); break;
             case Hk.Random: ToggleRandom(); break;
+            case Hk.Noise: ToggleNoise(); break;
             case Hk.Recover: RecoverToolbar(); break;
             default: handled = false; break;
         }
@@ -728,6 +745,10 @@ public partial class MainWindow : Window
             _settings.RandomRanges = _randomWin.RangesText;
             _settings.RandomCount = _randomWin.Count;
         }
+        if (_noiseWin != null)
+        {
+            _settings.NoiseSensitivity = _noiseWin.Sensitivity;
+        }
         SettingsStore.Save(_settings);
 
         SystemEvents.DisplaySettingsChanged -= OnDisplayChanged;
@@ -739,6 +760,7 @@ public partial class MainWindow : Window
         _magnifier?.Close();
         _timerWin?.Close();
         _randomWin?.Close();
+        _noiseWin?.Close();
         _haloSettings?.Close();
         _tray?.Dispose();
         _toolbar?.Close();

@@ -111,4 +111,8 @@ public class AppSettings
     public string RandomRanges { get; set; } = "1-20";
     /// <summary>마지막 뽑을 인원.</summary>
     public int RandomCount { get; set; } = 1;
+
+    // ── 소음 신호등 ────────────────────────────────────────────
+    /// <summary>소음 신호등 민감도(1=둔감 ~ 5=예민).</summary>
+    public int NoiseSensitivity { get; set; } = 3;
 }
