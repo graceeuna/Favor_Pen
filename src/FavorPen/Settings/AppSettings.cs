@@ -122,4 +122,6 @@ public class AppSettings
     public double NoiseLoudRef { get; set; } = -1;
     /// <summary>소음 신호등 표시부 크기 배율(0.7~3.0).</summary>
     public double NoiseScale { get; set; } = 1.0;
+    /// <summary>소음 신호등 자동 기준 학습(관찰된 최저/최고로 기준 자동 조정).</summary>
+    public bool NoiseAuto { get; set; } = false;
 }

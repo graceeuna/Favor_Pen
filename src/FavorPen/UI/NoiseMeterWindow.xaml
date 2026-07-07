@@ -139,11 +139,16 @@
                     <StackPanel>
                         <TextBlock Text="교실 기준 맞추기" Foreground="{StaticResource Sub}" FontSize="12"
                                    HorizontalAlignment="Center" Margin="0,0,0,6"/>
+                        <CheckBox x:Name="AutoCheck" Content="🤖 자동으로 맞추기"
+                                  Foreground="{StaticResource Ink}" FontSize="12"
+                                  HorizontalAlignment="Center" Margin="0,0,0,6"
+                                  ToolTip="켜두면 관찰된 최저/최고 소음으로 기준을 스스로 조정합니다"
+                                  Click="OnAutoToggle"/>
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                             <Button x:Name="CalQuietBtn" Style="{StaticResource Ctl}" Content="🔈 조용할 때"
-                                    ToolTip="교실이 조용한 지금 상태를 '조용' 기준으로 잡습니다" Click="OnCalQuiet"/>
+                                    ToolTip="조용한 지금 상태를 '조용' 기준으로 잡습니다(고정)" Click="OnCalQuiet"/>
                             <Button x:Name="CalLoudBtn" Style="{StaticResource Ctl}" Content="🔊 시끄러울 때"
-                                    ToolTip="시끄러운 지금 상태를 '시끄러움' 기준으로 잡습니다" Click="OnCalLoud"/>
+                                    ToolTip="시끄러운 지금 상태를 '시끄러움' 기준으로 잡습니다(고정)" Click="OnCalLoud"/>
                             <Button Style="{StaticResource Ctl}" Content="↺"
                                     ToolTip="기준 지우고 민감도 사용" Click="OnCalReset"/>
                         </StackPanel>

@@ -44,8 +44,14 @@ public partial class NoiseMeterWindow : Window
     private bool _userMoved;
 
     // 교실 기준(캘리브레이션). -1 = 미설정. 둘 다 유효하면 민감도 대신 이 기준을 쓴다.
+    // 자동 학습·수동 버튼이 이 같은 값을 공유한다(자동=계속 조정, 수동=그 순간 고정).
     private double _quietRef = -1;
     private double _loudRef = -1;
+    private bool _autoLearn;
+
+    // 자동 학습 시 조용은 서서히 오르고(과거 최저에 갇히지 않게), 시끄러움은 서서히 내린다.
+    private const double AutoQuietRise = 0.010; // 틱당(66ms) 상승
+    private const double AutoLoudDecay = 0.010; // 틱당 하강
 
     // 기준 측정(캡처) 상태: 0=없음, 1=조용, 2=시끄러움.
     private int _capTarget;
@@ -109,6 +115,18 @@ public partial class NoiseMeterWindow : Window
 
     /// <summary>두 기준이 모두 유효하고 순서가 맞으면 캘리브레이션 사용.</summary>
     private bool IsCalibrated => _quietRef >= 0 && _loudRef > _quietRef + 3;
+
+    /// <summary>자동 기준 학습 사용 여부. 종료 시 영속화.</summary>
+    public bool AutoLearn
+    {
+        get => _autoLearn;
+        set
+        {
+            _autoLearn = value;
+            if (AutoCheck != null) AutoCheck.IsChecked = value;
+            UpdateCalStatus();
+        }
+    }
 
     /// <summary>표시부 크기 배율(0.7~3.0). 종료 시 영속화.</summary>
     public double Scale
@@ -205,6 +223,9 @@ public partial class NoiseMeterWindow : Window
             return;
         }
 
+        if (_autoLearn)
+            AutoAdapt(level);
+
         var (greenMax, yellowMax) = CurrentThresholds();
         Level3 lvl = level <= greenMax ? Level3.Green
                    : level <= yellowMax ? Level3.Yellow
@@ -260,6 +281,38 @@ public partial class NoiseMeterWindow : Window
     private void OnCalQuiet(object sender, RoutedEventArgs e) => StartCapture(1);
     private void OnCalLoud(object sender, RoutedEventArgs e) => StartCapture(2);
 
+    private void OnAutoToggle(object sender, RoutedEventArgs e)
+    {
+        _autoLearn = AutoCheck.IsChecked == true;
+        // 자동을 처음 켤 때 기준이 비어 있으면 현재 레벨로 씨앗을 심는다(범위는 관찰하며 벌어진다).
+        if (_autoLearn && (_quietRef < 0 || _loudRef < 0))
+        {
+            double now = _monitor.Level;
+            _quietRef = now;
+            _loudRef = now;
+        }
+        UpdateCalStatus();
+    }
+
+    /// <summary>자동 학습: 조용은 관찰된 최저를 따라가되 서서히 오르고,
+    /// 시끄러움은 관찰된 최고를 따라가되 서서히 내린다. 수동 버튼으로 고정한 값도 여기서 이어 조정된다.</summary>
+    private void AutoAdapt(double level)
+    {
+        if (_quietRef < 0) _quietRef = level;
+        if (_loudRef < 0) _loudRef = level;
+
+        // 조용 기준: 더 낮은 소리를 만나면 즉시 내리고, 아니면 조금씩 올린다.
+        _quietRef = level < _quietRef ? level : _quietRef + AutoQuietRise;
+        // 시끄러움 기준: 더 큰 소리를 만나면 즉시 올리고, 아니면 조금씩 내린다.
+        _loudRef = level > _loudRef ? level : _loudRef - AutoLoudDecay;
+
+        _quietRef = Math.Clamp(_quietRef, 0, 100);
+        _loudRef = Math.Clamp(_loudRef, 0, 100);
+        if (_loudRef < _quietRef) _loudRef = _quietRef;
+
+        UpdateCalStatus();
+    }
+
     private void OnCalReset(object sender, RoutedEventArgs e)
     {
         _quietRef = -1;
@@ -309,7 +362,11 @@ public partial class NoiseMeterWindow : Window
         if (_capTarget != 0) return; // 측정 중 문구 유지
 
         if (IsCalibrated)
-            CalStatus.Text = $"교실 기준 사용 중 (조용 {_quietRef:0} · 시끄러움 {_loudRef:0})";
+            CalStatus.Text = _autoLearn
+                ? $"자동 학습 중 (조용 {_quietRef:0} · 시끄러움 {_loudRef:0})"
+                : $"교실 기준 사용 중 (조용 {_quietRef:0} · 시끄러움 {_loudRef:0})";
+        else if (_autoLearn)
+            CalStatus.Text = "자동 학습 중… 소음 범위 익히는 중";
         else if (_quietRef >= 0 && _loudRef >= 0)
             CalStatus.Text = "‘시끄러움’이 ‘조용’보다 커야 해요 — 다시 잡아주세요";
         else if (_quietRef >= 0 || _loudRef >= 0)
