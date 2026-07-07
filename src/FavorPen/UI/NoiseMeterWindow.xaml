@@ -9,13 +9,13 @@
         ShowInTaskbar="False"
         ResizeMode="NoResize"
         SizeToContent="WidthAndHeight"
-        WindowStartupLocation="Manual">
+        WindowStartupLocation="Manual"
+        PreviewKeyDown="OnKeyDown">
 
     <Window.Resources>
         <SolidColorBrush x:Key="Ink" Color="#FFEDEDED"/>
         <SolidColorBrush x:Key="Sub" Color="#FFB0B0B0"/>
 
-        <!-- 작은 컨트롤 버튼 -->
         <Style x:Key="Ctl" TargetType="Button">
             <Setter Property="Height" Value="32"/>
             <Setter Property="MinWidth" Value="34"/>
@@ -50,103 +50,129 @@
         </Style>
     </Window.Resources>
 
-    <!-- 둥근 패널. 빈 영역 드래그로 이동. -->
     <Border x:Name="Root" CornerRadius="18" Background="#E6101010"
             Padding="22,18" MouseLeftButtonDown="OnDrag">
         <Border.Effect>
             <DropShadowEffect Color="Black" BlurRadius="22" ShadowDepth="0" Opacity="0.6"/>
         </Border.Effect>
 
-        <StackPanel>
-            <TextBlock Text="🚦 소음 신호등" Foreground="{StaticResource Sub}"
-                       FontSize="14" HorizontalAlignment="Center" Margin="0,0,0,12"/>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition x:Name="DisplayRow" Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
 
-            <StackPanel Orientation="Horizontal">
+            <!-- 헤더 -->
+            <TextBlock x:Name="HeaderText" Grid.Row="0" Text="🚦 소음 신호등"
+                       Foreground="{StaticResource Sub}" FontSize="14"
+                       HorizontalAlignment="Center" Margin="0,0,0,12"/>
 
-                <!-- 신호등 몸체 -->
-                <Border Background="#FF17171A" CornerRadius="16" Padding="12" VerticalAlignment="Top">
+            <!-- 전체화면 토글(항상 우상단에 떠 있음) -->
+            <Button x:Name="FullBtn" Grid.Row="0" Grid.RowSpan="3" Panel.ZIndex="10"
+                    HorizontalAlignment="Right" VerticalAlignment="Top"
+                    Style="{StaticResource Ctl}" Content="⛶ 전체화면"
+                    ToolTip="전체화면으로 크게 (Esc로 나가기)" Click="OnToggleFull"/>
+
+            <!-- 표시부(신호등+상태+수치) — Viewbox 로 크기 조절/전체화면 시 확대 -->
+            <Viewbox x:Name="DisplayBox" Grid.Row="1" Stretch="Uniform"
+                     Height="290" HorizontalAlignment="Center">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- 신호등 몸체 -->
+                    <Border Background="#FF17171A" CornerRadius="16" Padding="12" VerticalAlignment="Center">
+                        <StackPanel>
+                            <Ellipse x:Name="LampRed" Width="76" Height="76" Margin="0,0,0,10"/>
+                            <Ellipse x:Name="LampYellow" Width="76" Height="76" Margin="0,0,0,10"/>
+                            <Ellipse x:Name="LampGreen" Width="76" Height="76"/>
+                        </StackPanel>
+                    </Border>
+                    <!-- 상태 문구 + 레벨 -->
+                    <StackPanel VerticalAlignment="Center" Margin="26,0,10,0">
+                        <TextBlock x:Name="StatusText" Text="시작을 누르세요"
+                                   FontFamily="pack://application:,,,/FavorPen;component/Assets/Fonts/#Maplestory"
+                                   FontWeight="Bold" FontSize="40" Foreground="{StaticResource Ink}"
+                                   TextAlignment="Center" HorizontalAlignment="Center"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,6,0,0">
+                            <TextBlock x:Name="LevelText" Text="0"
+                                       FontSize="44" FontWeight="Bold" Foreground="{StaticResource Ink}"
+                                       VerticalAlignment="Center"/>
+                            <TextBlock Text="dB" Foreground="{StaticResource Sub}" FontSize="18"
+                                       VerticalAlignment="Bottom" Margin="4,0,0,8"/>
+                        </StackPanel>
+                    </StackPanel>
+                </StackPanel>
+            </Viewbox>
+
+            <!-- 조작부(전체화면에서는 숨김) -->
+            <StackPanel x:Name="ControlPanel" Grid.Row="2" Margin="0,16,0,0" MinWidth="300">
+
+                <!-- 레벨 막대 -->
+                <Border Background="#22FFFFFF" CornerRadius="6" Height="12" Margin="0,0,0,14">
+                    <Border x:Name="LevelBar" Background="#FF43D13B" CornerRadius="6"
+                            HorizontalAlignment="Left" Width="0"/>
+                </Border>
+
+                <!-- 크기 -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,8">
+                    <TextBlock Text="크기" Foreground="{StaticResource Sub}" FontSize="13"
+                               VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <Button Style="{StaticResource Ctl}" Content="−" ToolTip="작게" Click="OnSizeSmaller"/>
+                    <TextBlock x:Name="SizeText" Text="100%" Foreground="{StaticResource Ink}"
+                               FontSize="14" FontWeight="Bold" Width="56" TextAlignment="Center"
+                               VerticalAlignment="Center"/>
+                    <Button Style="{StaticResource Ctl}" Content="+" ToolTip="크게" Click="OnSizeBigger"/>
+                </StackPanel>
+
+                <!-- 민감도 -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,8">
+                    <TextBlock Text="민감도" Foreground="{StaticResource Sub}" FontSize="13"
+                               VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <Button Style="{StaticResource Ctl}" Content="−" ToolTip="덜 예민하게" Click="OnSensMinus"/>
+                    <TextBlock x:Name="SensText" Text="3" Foreground="{StaticResource Ink}"
+                               FontSize="17" FontWeight="Bold" Width="40" TextAlignment="Center"
+                               VerticalAlignment="Center"/>
+                    <Button Style="{StaticResource Ctl}" Content="+" ToolTip="더 예민하게" Click="OnSensPlus"/>
+                </StackPanel>
+
+                <!-- 교실 기준 맞추기(캘리브레이션) -->
+                <Border Background="#14FFFFFF" CornerRadius="10" Padding="10,8" Margin="0,0,0,12">
                     <StackPanel>
-                        <Ellipse x:Name="LampRed" Width="76" Height="76" Margin="0,0,0,10"/>
-                        <Ellipse x:Name="LampYellow" Width="76" Height="76" Margin="0,0,0,10"/>
-                        <Ellipse x:Name="LampGreen" Width="76" Height="76"/>
+                        <TextBlock Text="교실 기준 맞추기" Foreground="{StaticResource Sub}" FontSize="12"
+                                   HorizontalAlignment="Center" Margin="0,0,0,6"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <Button x:Name="CalQuietBtn" Style="{StaticResource Ctl}" Content="🔈 조용할 때"
+                                    ToolTip="교실이 조용한 지금 상태를 '조용' 기준으로 잡습니다" Click="OnCalQuiet"/>
+                            <Button x:Name="CalLoudBtn" Style="{StaticResource Ctl}" Content="🔊 시끄러울 때"
+                                    ToolTip="시끄러운 지금 상태를 '시끄러움' 기준으로 잡습니다" Click="OnCalLoud"/>
+                            <Button Style="{StaticResource Ctl}" Content="↺"
+                                    ToolTip="기준 지우고 민감도 사용" Click="OnCalReset"/>
+                        </StackPanel>
+                        <TextBlock x:Name="CalStatus" Text="기준 미설정 — 민감도로 동작"
+                                   Foreground="{StaticResource Sub}" FontSize="11"
+                                   HorizontalAlignment="Center" Margin="0,6,0,0"/>
                     </StackPanel>
                 </Border>
 
-                <!-- 정보/조작 -->
-                <StackPanel Margin="18,0,0,0" MinWidth="220" VerticalAlignment="Top">
-
-                    <!-- 상태 문구 -->
-                    <TextBlock x:Name="StatusText" Text="시작을 누르세요"
-                               FontFamily="pack://application:,,,/FavorPen;component/Assets/Fonts/#Maplestory"
-                               FontWeight="Bold" FontSize="34" Foreground="{StaticResource Ink}"
-                               TextAlignment="Center" HorizontalAlignment="Center" Margin="0,4,0,6"/>
-
-                    <!-- 레벨 수치 -->
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,14">
-                        <TextBlock x:Name="LevelText" Text="0"
-                                   FontSize="40" FontWeight="Bold" Foreground="{StaticResource Ink}"
-                                   VerticalAlignment="Center"/>
-                        <TextBlock Text="dB" Foreground="{StaticResource Sub}" FontSize="16"
-                                   VerticalAlignment="Bottom" Margin="4,0,0,8"/>
-                    </StackPanel>
-
-                    <!-- 레벨 막대 -->
-                    <Border Background="#22FFFFFF" CornerRadius="6" Height="12" Margin="0,0,0,16">
-                        <Border x:Name="LevelBar" Background="#FF43D13B" CornerRadius="6"
-                                HorizontalAlignment="Left" Width="0"/>
-                    </Border>
-
-                    <!-- 민감도 -->
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,8">
-                        <TextBlock Text="민감도" Foreground="{StaticResource Sub}" FontSize="13"
-                                   VerticalAlignment="Center" Margin="0,0,10,0"/>
-                        <Button Style="{StaticResource Ctl}" Content="−" ToolTip="덜 예민하게" Click="OnSensMinus"/>
-                        <TextBlock x:Name="SensText" Text="3" Foreground="{StaticResource Ink}"
-                                   FontSize="17" FontWeight="Bold" Width="40" TextAlignment="Center"
-                                   VerticalAlignment="Center"/>
-                        <Button Style="{StaticResource Ctl}" Content="+" ToolTip="더 예민하게" Click="OnSensPlus"/>
-                    </StackPanel>
-
-                    <!-- 교실 기준 맞추기(캘리브레이션) -->
-                    <Border Background="#14FFFFFF" CornerRadius="10" Padding="10,8" Margin="0,0,0,12">
-                        <StackPanel>
-                            <TextBlock Text="교실 기준 맞추기" Foreground="{StaticResource Sub}" FontSize="12"
-                                       HorizontalAlignment="Center" Margin="0,0,0,6"/>
-                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                                <Button x:Name="CalQuietBtn" Style="{StaticResource Ctl}" Content="🔈 조용할 때"
-                                        ToolTip="교실이 조용한 지금 상태를 '조용' 기준으로 잡습니다" Click="OnCalQuiet"/>
-                                <Button x:Name="CalLoudBtn" Style="{StaticResource Ctl}" Content="🔊 시끄러울 때"
-                                        ToolTip="허용 가능한 최대 소음 상태를 '시끄러움' 기준으로 잡습니다" Click="OnCalLoud"/>
-                                <Button Style="{StaticResource Ctl}" Content="↺"
-                                        ToolTip="기준 지우고 민감도 사용" Click="OnCalReset"/>
-                            </StackPanel>
-                            <TextBlock x:Name="CalStatus" Text="기준 미설정 — 민감도로 동작"
-                                       Foreground="{StaticResource Sub}" FontSize="11"
-                                       HorizontalAlignment="Center" Margin="0,6,0,0"/>
-                        </StackPanel>
-                    </Border>
-
-                    <!-- 경고 -->
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,14">
-                        <TextBlock Text="⚠ 경고" Foreground="{StaticResource Sub}" FontSize="13"
-                                   VerticalAlignment="Center" Margin="0,0,8,0"/>
-                        <TextBlock x:Name="WarnText" Text="0회" Foreground="{StaticResource Ink}"
-                                   FontSize="15" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,10,0"/>
-                        <CheckBox x:Name="SoundCheck" Content="경고음" IsChecked="True"
-                                  Foreground="{StaticResource Ink}" VerticalAlignment="Center" FontSize="12"/>
-                    </StackPanel>
-
-                    <!-- 시작·닫기 -->
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                        <Button x:Name="MicButton" Style="{StaticResource Primary}"
-                                Content="▶ 시작" Click="OnToggleMic"/>
-                        <Button Style="{StaticResource Ctl}" Content="✕ 닫기" Click="OnCloseClick"/>
-                    </StackPanel>
-
-                    <TextBlock x:Name="MicStatus" Text="" Foreground="{StaticResource Sub}"
-                               FontSize="11" HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                <!-- 경고 -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,14">
+                    <TextBlock Text="⚠ 경고" Foreground="{StaticResource Sub}" FontSize="13"
+                               VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBlock x:Name="WarnText" Text="0회" Foreground="{StaticResource Ink}"
+                               FontSize="15" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <CheckBox x:Name="SoundCheck" Content="경고음" IsChecked="True"
+                              Foreground="{StaticResource Ink}" VerticalAlignment="Center" FontSize="12"/>
                 </StackPanel>
+
+                <!-- 시작·닫기 -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <Button x:Name="MicButton" Style="{StaticResource Primary}"
+                            Content="▶ 시작" Click="OnToggleMic"/>
+                    <Button Style="{StaticResource Ctl}" Content="✕ 닫기" Click="OnCloseClick"/>
+                </StackPanel>
+
+                <TextBlock x:Name="MicStatus" Text="" Foreground="{StaticResource Sub}"
+                           FontSize="11" HorizontalAlignment="Center" Margin="0,8,0,0"/>
             </StackPanel>
-        </StackPanel>
+        </Grid>
     </Border>
 </Window>

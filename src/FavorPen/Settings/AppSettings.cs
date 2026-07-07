@@ -120,4 +120,6 @@ public class AppSettings
     public double NoiseQuietRef { get; set; } = -1;
     /// <summary>교실 기준 — 시끄러울 때 측정한 레벨(0~100). -1이면 미설정.</summary>
     public double NoiseLoudRef { get; set; } = -1;
+    /// <summary>소음 신호등 표시부 크기 배율(0.7~3.0).</summary>
+    public double NoiseScale { get; set; } = 1.0;
 }

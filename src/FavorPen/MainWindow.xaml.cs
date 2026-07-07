@@ -577,6 +577,7 @@ public partial class MainWindow : Window
             _noiseWin.Sensitivity = _settings.NoiseSensitivity;
             _noiseWin.QuietRef = _settings.NoiseQuietRef;
             _noiseWin.LoudRef = _settings.NoiseLoudRef;
+            _noiseWin.Scale = _settings.NoiseScale;
             _noiseWin.IsVisibleChanged += (_, _) => _toolbar?.SetNoiseActive(_noiseWin!.IsVisible);
         }
         _noiseWin.Toggle();
@@ -752,6 +753,7 @@ public partial class MainWindow : Window
             _settings.NoiseSensitivity = _noiseWin.Sensitivity;
             _settings.NoiseQuietRef = _noiseWin.QuietRef;
             _settings.NoiseLoudRef = _noiseWin.LoudRef;
+            _settings.NoiseScale = _noiseWin.Scale;
         }
         SettingsStore.Save(_settings);
 

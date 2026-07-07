@@ -30,6 +30,8 @@ public partial class NoiseMeterWindow : Window
     private static readonly Brush GreenOn = Frozen(0xFF, 0x44, 0xD1, 0x3B);
     private static readonly Brush GreenOff = Frozen(0x40, 0x44, 0xD1, 0x3B);
     private static readonly Brush SubBrush = Frozen(0xFF, 0xB0, 0xB0, 0xB0);
+    private static readonly Brush WindowedBg = Frozen(0xE6, 0x10, 0x10, 0x10);   // 창 모드(반투명)
+    private static readonly Brush FullscreenBg = Frozen(0xFF, 0x0E, 0x11, 0x16); // 전체화면(불투명)
 
     private enum Level3 { Off, Green, Yellow, Red }
 
@@ -59,6 +61,13 @@ public partial class NoiseMeterWindow : Window
     // 폴링 주기 ~66ms. 빨강이 약 1.2초(≈18틱) 지속되면 경고.
     private const int RedWarnTicks = 18;
 
+    // 표시부 크기(배율) / 전체화면.
+    private double _scale = 1.0;
+    private bool _fullscreen;
+    private double _savedLeft, _savedTop;
+    private const double DisplayBaseHeight = 290; // 배율 1.0 일 때 표시부 높이(px)
+    private const double ScaleMin = 0.7, ScaleMax = 3.0, ScaleStep = 0.2;
+
     public NoiseMeterWindow()
     {
         InitializeComponent();
@@ -69,10 +78,11 @@ public partial class NoiseMeterWindow : Window
         };
         _poll.Tick += OnPoll;
 
-        SizeChanged += (_, _) => { if (!_userMoved) CenterOnPrimary(); };
+        SizeChanged += (_, _) => { if (!_userMoved && !_fullscreen) CenterOnPrimary(); };
         SetLamps(Level3.Off);
         UpdateSensText();
         UpdateCalStatus();
+        ApplyScale();
     }
 
     // ── 외부(지휘자) API ───────────────────────────────────────
@@ -100,6 +110,13 @@ public partial class NoiseMeterWindow : Window
     /// <summary>두 기준이 모두 유효하고 순서가 맞으면 캘리브레이션 사용.</summary>
     private bool IsCalibrated => _quietRef >= 0 && _loudRef > _quietRef + 3;
 
+    /// <summary>표시부 크기 배율(0.7~3.0). 종료 시 영속화.</summary>
+    public double Scale
+    {
+        get => _scale;
+        set { _scale = Math.Clamp(value, ScaleMin, ScaleMax); ApplyScale(); }
+    }
+
     public void Toggle()
     {
         if (IsVisible) HideMeter();
@@ -118,6 +135,7 @@ public partial class NoiseMeterWindow : Window
     public void HideMeter()
     {
         StopMic();
+        if (_fullscreen) ExitFullscreen();
         Hide();
     }
 
@@ -333,6 +351,102 @@ public partial class NoiseMeterWindow : Window
 
     private void OnCloseClick(object sender, RoutedEventArgs e) => HideMeter();
 
+    // ── 크기(배율) ─────────────────────────────────────────────
+    private void OnSizeBigger(object sender, RoutedEventArgs e) => Scale = _scale + ScaleStep;
+    private void OnSizeSmaller(object sender, RoutedEventArgs e) => Scale = _scale - ScaleStep;
+
+    private void ApplyScale()
+    {
+        if (SizeText != null)
+            SizeText.Text = $"{Math.Round(_scale * 100)}%";
+        // 전체화면에서는 Viewbox 가 화면을 꽉 채우므로 높이를 고정하지 않는다.
+        if (DisplayBox != null && !_fullscreen)
+            DisplayBox.Height = DisplayBaseHeight * _scale;
+    }
+
+    // ── 전체화면 ───────────────────────────────────────────────
+    private void OnToggleFull(object sender, RoutedEventArgs e)
+    {
+        if (_fullscreen) ExitFullscreen();
+        else EnterFullscreen();
+    }
+
+    private void EnterFullscreen()
+    {
+        if (_fullscreen) return;
+        _fullscreen = true;
+        _savedLeft = Left;
+        _savedTop = Top;
+
+        // 주모니터를 꽉 채운다(가상화면 좌표 → DIP 환산).
+        var p = System.Windows.Forms.Screen.PrimaryScreen;
+        var src = PresentationSource.FromVisual(this);
+        double sx = src?.CompositionTarget?.TransformToDevice.M11 ?? 1.0;
+        double sy = src?.CompositionTarget?.TransformToDevice.M22 ?? 1.0;
+
+        SizeToContent = SizeToContent.Manual;
+        if (p != null)
+        {
+            var b = p.Bounds;
+            Left = b.Left / sx; Top = b.Top / sy;
+            Width = b.Width / sx; Height = b.Height / sy;
+        }
+        else
+        {
+            Left = 0; Top = 0;
+            Width = SystemParameters.PrimaryScreenWidth;
+            Height = SystemParameters.PrimaryScreenHeight;
+        }
+
+        // 큰 화면용 레이아웃: 조작부/헤더 숨기고 표시부를 화면 가득 확대.
+        HeaderText.Visibility = Visibility.Collapsed;
+        ControlPanel.Visibility = Visibility.Collapsed;
+        Root.CornerRadius = new CornerRadius(0);
+        Root.Padding = new Thickness(48);
+        Root.Background = FullscreenBg; // 교실 표시용 불투명 배경
+        DisplayRow.Height = new GridLength(1, GridUnitType.Star);
+        DisplayBox.Height = double.NaN;                 // Viewbox 가 남는 공간을 채우도록
+        DisplayBox.VerticalAlignment = VerticalAlignment.Stretch;
+        FullBtn.Content = "🡼 작게";
+        Topmost = true;
+        Activate();
+    }
+
+    private void ExitFullscreen()
+    {
+        if (!_fullscreen) return;
+        _fullscreen = false;
+
+        HeaderText.Visibility = Visibility.Visible;
+        ControlPanel.Visibility = Visibility.Visible;
+        Root.CornerRadius = new CornerRadius(18);
+        Root.Padding = new Thickness(22, 18, 22, 18);
+        Root.Background = WindowedBg;
+        DisplayRow.Height = GridLength.Auto;
+        DisplayBox.VerticalAlignment = VerticalAlignment.Center;
+        FullBtn.Content = "⛶ 전체화면";
+        SizeToContent = SizeToContent.WidthAndHeight;
+        ApplyScale();
+
+        // 원래 창 위치로 복귀(레이아웃 후 보정).
+        Left = _savedLeft; Top = _savedTop;
+        Dispatcher.BeginInvoke(new Action(() =>
+        {
+            var (l, t) = (Left, Top);
+            if (l < 0 || t < 0 || l > SystemParameters.VirtualScreenWidth || t > SystemParameters.VirtualScreenHeight)
+                CenterOnPrimary();
+        }), DispatcherPriority.Loaded);
+    }
+
+    private void OnKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape && _fullscreen)
+        {
+            ExitFullscreen();
+            e.Handled = true;
+        }
+    }
+
     // ── 위치 ───────────────────────────────────────────────────
     private void CenterOnPrimary()
     {
@@ -355,6 +469,7 @@ public partial class NoiseMeterWindow : Window
 
     private void OnDrag(object sender, MouseButtonEventArgs e)
     {
+        if (_fullscreen) return; // 전체화면에서는 드래그 이동 금지
         if (e.ButtonState == MouseButtonState.Pressed)
         {
             _userMoved = true;
