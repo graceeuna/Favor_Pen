@@ -97,7 +97,7 @@
                     </Border>
 
                     <!-- 민감도 -->
-                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,10">
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,8">
                         <TextBlock Text="민감도" Foreground="{StaticResource Sub}" FontSize="13"
                                    VerticalAlignment="Center" Margin="0,0,10,0"/>
                         <Button Style="{StaticResource Ctl}" Content="−" ToolTip="덜 예민하게" Click="OnSensMinus"/>
@@ -106,6 +106,25 @@
                                    VerticalAlignment="Center"/>
                         <Button Style="{StaticResource Ctl}" Content="+" ToolTip="더 예민하게" Click="OnSensPlus"/>
                     </StackPanel>
+
+                    <!-- 교실 기준 맞추기(캘리브레이션) -->
+                    <Border Background="#14FFFFFF" CornerRadius="10" Padding="10,8" Margin="0,0,0,12">
+                        <StackPanel>
+                            <TextBlock Text="교실 기준 맞추기" Foreground="{StaticResource Sub}" FontSize="12"
+                                       HorizontalAlignment="Center" Margin="0,0,0,6"/>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <Button x:Name="CalQuietBtn" Style="{StaticResource Ctl}" Content="🔈 조용할 때"
+                                        ToolTip="교실이 조용한 지금 상태를 '조용' 기준으로 잡습니다" Click="OnCalQuiet"/>
+                                <Button x:Name="CalLoudBtn" Style="{StaticResource Ctl}" Content="🔊 시끄러울 때"
+                                        ToolTip="허용 가능한 최대 소음 상태를 '시끄러움' 기준으로 잡습니다" Click="OnCalLoud"/>
+                                <Button Style="{StaticResource Ctl}" Content="↺"
+                                        ToolTip="기준 지우고 민감도 사용" Click="OnCalReset"/>
+                            </StackPanel>
+                            <TextBlock x:Name="CalStatus" Text="기준 미설정 — 민감도로 동작"
+                                       Foreground="{StaticResource Sub}" FontSize="11"
+                                       HorizontalAlignment="Center" Margin="0,6,0,0"/>
+                        </StackPanel>
+                    </Border>
 
                     <!-- 경고 -->
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,14">

@@ -41,6 +41,17 @@ public partial class NoiseMeterWindow : Window
     private bool _micOn;
     private bool _userMoved;
 
+    // 교실 기준(캘리브레이션). -1 = 미설정. 둘 다 유효하면 민감도 대신 이 기준을 쓴다.
+    private double _quietRef = -1;
+    private double _loudRef = -1;
+
+    // 기준 측정(캡처) 상태: 0=없음, 1=조용, 2=시끄러움.
+    private int _capTarget;
+    private double _capSum;
+    private int _capCount;
+    private int _capTicksLeft;
+    private const int CapTicks = 18; // ~1.2초 평균
+
     private Level3 _state = Level3.Off;
     private int _redTicks;          // 빨강 연속 지속 폴 수
     private bool _warned;           // 현재 빨강 구간에서 이미 경고했는지
@@ -61,6 +72,7 @@ public partial class NoiseMeterWindow : Window
         SizeChanged += (_, _) => { if (!_userMoved) CenterOnPrimary(); };
         SetLamps(Level3.Off);
         UpdateSensText();
+        UpdateCalStatus();
     }
 
     // ── 외부(지휘자) API ───────────────────────────────────────
@@ -70,6 +82,23 @@ public partial class NoiseMeterWindow : Window
         get => _sensitivity;
         set { _sensitivity = Math.Clamp(value, 1, 5); UpdateSensText(); }
     }
+
+    /// <summary>교실 기준 — 조용 레벨(0~100, -1=미설정). 종료 시 영속화.</summary>
+    public double QuietRef
+    {
+        get => _quietRef;
+        set { _quietRef = value; UpdateCalStatus(); }
+    }
+
+    /// <summary>교실 기준 — 시끄러움 레벨(0~100, -1=미설정). 종료 시 영속화.</summary>
+    public double LoudRef
+    {
+        get => _loudRef;
+        set { _loudRef = value; UpdateCalStatus(); }
+    }
+
+    /// <summary>두 기준이 모두 유효하고 순서가 맞으면 캘리브레이션 사용.</summary>
+    private bool IsCalibrated => _quietRef >= 0 && _loudRef > _quietRef + 3;
 
     public void Toggle()
     {
@@ -126,6 +155,8 @@ public partial class NoiseMeterWindow : Window
         _micOn = false;
         MicButton.Content = "▶ 시작";
         MicStatus.Text = "";
+        CancelCapture();
+        UpdateCalStatus();
         SetState(Level3.Off);
         LevelText.Text = "0";
         LevelBar.Width = 0;
@@ -146,7 +177,17 @@ public partial class NoiseMeterWindow : Window
         // 레벨 막대(최대 폭 210).
         LevelBar.Width = Math.Clamp(level / 100.0 * 210.0, 0, 210);
 
-        var (greenMax, yellowMax) = Thresholds(_sensitivity);
+        // 기준 측정 중이면 레벨을 누적하고, 신호등 판정은 잠시 건너뛴다.
+        if (_capTarget != 0)
+        {
+            _capSum += level;
+            _capCount++;
+            if (--_capTicksLeft <= 0)
+                FinishCapture();
+            return;
+        }
+
+        var (greenMax, yellowMax) = CurrentThresholds();
         Level3 lvl = level <= greenMax ? Level3.Green
                    : level <= yellowMax ? Level3.Yellow
                    : Level3.Red;
@@ -173,6 +214,20 @@ public partial class NoiseMeterWindow : Window
         }
     }
 
+    /// <summary>현재 임계값(0~100). 교실 기준이 있으면 그것을, 없으면 민감도를 사용한다.</summary>
+    private (double greenMax, double yellowMax) CurrentThresholds()
+    {
+        if (IsCalibrated)
+        {
+            double range = _loudRef - _quietRef;
+            // 조용~시끄러움 구간을 초록(하위 40%)/노랑(40~72%)/빨강(상위)으로 나눈다.
+            double greenMax = _quietRef + range * 0.40;
+            double yellowMax = _quietRef + range * 0.72;
+            return (greenMax, yellowMax);
+        }
+        return Thresholds(_sensitivity);
+    }
+
     /// <summary>민감도(1~5) → (greenMax, yellowMax) 임계값(0~100).
     /// 예민할수록 임계값이 낮아 작은 소리에도 노랑/빨강으로 넘어간다.</summary>
     private static (double greenMax, double yellowMax) Thresholds(int sens)
@@ -181,6 +236,68 @@ public partial class NoiseMeterWindow : Window
         double greenMax = 55 - 30 * t; // 55 → 25
         double yellowMax = 78 - 33 * t; // 78 → 45
         return (greenMax, yellowMax);
+    }
+
+    // ── 교실 기준 맞추기(캘리브레이션) ─────────────────────────
+    private void OnCalQuiet(object sender, RoutedEventArgs e) => StartCapture(1);
+    private void OnCalLoud(object sender, RoutedEventArgs e) => StartCapture(2);
+
+    private void OnCalReset(object sender, RoutedEventArgs e)
+    {
+        _quietRef = -1;
+        _loudRef = -1;
+        _capTarget = 0;
+        UpdateCalStatus();
+    }
+
+    private void StartCapture(int target)
+    {
+        if (!_micOn)
+        {
+            CalStatus.Text = "먼저 ▶ 시작을 누르세요";
+            return;
+        }
+        _capTarget = target;
+        _capSum = 0;
+        _capCount = 0;
+        _capTicksLeft = CapTicks;
+        CalQuietBtn.IsEnabled = false;
+        CalLoudBtn.IsEnabled = false;
+        CalStatus.Text = target == 1 ? "조용 기준 측정 중…" : "시끄러움 기준 측정 중…";
+    }
+
+    private void FinishCapture()
+    {
+        double avg = _capSum / Math.Max(1, _capCount);
+        if (_capTarget == 1) _quietRef = avg;
+        else if (_capTarget == 2) _loudRef = avg;
+
+        _capTarget = 0;
+        CalQuietBtn.IsEnabled = true;
+        CalLoudBtn.IsEnabled = true;
+        UpdateCalStatus();
+    }
+
+    private void CancelCapture()
+    {
+        _capTarget = 0;
+        if (CalQuietBtn != null) CalQuietBtn.IsEnabled = true;
+        if (CalLoudBtn != null) CalLoudBtn.IsEnabled = true;
+    }
+
+    private void UpdateCalStatus()
+    {
+        if (CalStatus == null) return;
+        if (_capTarget != 0) return; // 측정 중 문구 유지
+
+        if (IsCalibrated)
+            CalStatus.Text = $"교실 기준 사용 중 (조용 {_quietRef:0} · 시끄러움 {_loudRef:0})";
+        else if (_quietRef >= 0 && _loudRef >= 0)
+            CalStatus.Text = "‘시끄러움’이 ‘조용’보다 커야 해요 — 다시 잡아주세요";
+        else if (_quietRef >= 0 || _loudRef >= 0)
+            CalStatus.Text = "나머지 기준도 잡아주세요";
+        else
+            CalStatus.Text = "기준 미설정 — 민감도로 동작";
     }
 
     private void SetState(Level3 lvl)

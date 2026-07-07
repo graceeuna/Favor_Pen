@@ -113,6 +113,11 @@ public class AppSettings
     public int RandomCount { get; set; } = 1;
 
     // ── 소음 신호등 ────────────────────────────────────────────
-    /// <summary>소음 신호등 민감도(1=둔감 ~ 5=예민).</summary>
+    /// <summary>소음 신호등 민감도(1=둔감 ~ 5=예민). 교실 기준(캘리브레이션) 미설정 시 사용.</summary>
     public int NoiseSensitivity { get; set; } = 3;
+
+    /// <summary>교실 기준 — 조용할 때 측정한 레벨(0~100). -1이면 미설정.</summary>
+    public double NoiseQuietRef { get; set; } = -1;
+    /// <summary>교실 기준 — 시끄러울 때 측정한 레벨(0~100). -1이면 미설정.</summary>
+    public double NoiseLoudRef { get; set; } = -1;
 }
