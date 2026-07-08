@@ -574,9 +574,8 @@ public partial class MainWindow : Window
         if (_noiseWin == null)
         {
             _noiseWin = new NoiseMeterWindow { Owner = this };
-            _noiseWin.Sensitivity = _settings.NoiseSensitivity;
-            _noiseWin.QuietRef = _settings.NoiseQuietRef;
-            _noiseWin.LoudRef = _settings.NoiseLoudRef;
+            _noiseWin.YellowAt = _settings.NoiseYellowAt;
+            _noiseWin.RedAt = _settings.NoiseRedAt;
             _noiseWin.Scale = _settings.NoiseScale;
             _noiseWin.AutoLearn = _settings.NoiseAuto;
             _noiseWin.IsVisibleChanged += (_, _) => _toolbar?.SetNoiseActive(_noiseWin!.IsVisible);
@@ -751,9 +750,8 @@ public partial class MainWindow : Window
         }
         if (_noiseWin != null)
         {
-            _settings.NoiseSensitivity = _noiseWin.Sensitivity;
-            _settings.NoiseQuietRef = _noiseWin.QuietRef;
-            _settings.NoiseLoudRef = _noiseWin.LoudRef;
+            _settings.NoiseYellowAt = _noiseWin.YellowAt;
+            _settings.NoiseRedAt = _noiseWin.RedAt;
             _settings.NoiseScale = _noiseWin.Scale;
             _settings.NoiseAuto = _noiseWin.AutoLearn;
         }

@@ -1,6 +1,8 @@
 using System;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
@@ -11,11 +13,10 @@ namespace FavorPen.UI;
 
 /// <summary>
 /// 교실 모둠활동용 소음 신호등. 마이크로 소음 크기를 측정해 초록/노랑/빨강 신호등으로 보여 준다.
-/// 너무 시끄러운 상태(빨강)가 잠시 지속되면 경고음을 내고 경고 횟수를 센다.
+/// 경고 기준(노랑·빨강 dB)은 직접 숫자로 입력하거나, 자동 학습으로 채울 수 있다.
+/// 빨강이 잠시 지속되면 경고음을 내고 경고 횟수를 센다.
 ///
-/// 타이머/랜덤 창과 동일한 패턴: 입력 가능한 일반 창이며 지휘자가 Owner=오버레이로 띄운다.
-/// 실제 측정은 <see cref="NoiseMonitor"/>(백그라운드 오디오)에 맡기고, 이 창은
-/// <see cref="DispatcherTimer"/> 로 레벨을 폴링해 UI 를 갱신한다.
+/// 표시되는 dB 는 공인 소음계(SPL)가 아니라 이 마이크 기준의 상대값이다.
 /// </summary>
 public partial class NoiseMeterWindow : Window
 {
@@ -38,31 +39,24 @@ public partial class NoiseMeterWindow : Window
     private readonly NoiseMonitor _monitor = new();
     private readonly DispatcherTimer _poll;
 
-    private int _sensitivity = 3;   // 1(둔감)~5(예민)
     private int _warnCount;
     private bool _micOn;
     private bool _userMoved;
 
-    // 교실 기준(캘리브레이션). -1 = 미설정. 둘 다 유효하면 민감도 대신 이 기준을 쓴다.
-    // 자동 학습·수동 버튼이 이 같은 값을 공유한다(자동=계속 조정, 수동=그 순간 고정).
-    private double _quietRef = -1;
-    private double _loudRef = -1;
-    private bool _autoLearn;
+    // 경고 기준(dB): 이 값 이상이면 노랑 / 빨강. 직접 입력 또는 자동 학습으로 설정.
+    private double _yellowAt = 75;
+    private double _redAt = 88;
 
-    // 자동 학습 시 조용은 서서히 오르고(과거 최저에 갇히지 않게), 시끄러움은 서서히 내린다.
+    // 자동 학습.
+    private bool _autoLearn;
+    private double _autoQuiet = -1, _autoLoud = -1;
+    private bool _syncingBoxes; // 자동이 입력칸을 갱신할 때 TextChanged 되먹임 방지
     private const double AutoQuietRise = 0.010; // 틱당(66ms) 상승
     private const double AutoLoudDecay = 0.010; // 틱당 하강
 
-    // 기준 측정(캡처) 상태: 0=없음, 1=조용, 2=시끄러움.
-    private int _capTarget;
-    private double _capSum;
-    private int _capCount;
-    private int _capTicksLeft;
-    private const int CapTicks = 18; // ~1.2초 평균
-
     private Level3 _state = Level3.Off;
-    private int _redTicks;          // 빨강 연속 지속 폴 수
-    private bool _warned;           // 현재 빨강 구간에서 이미 경고했는지
+    private int _redTicks;
+    private bool _warned;
 
     // 폴링 주기 ~66ms. 빨강이 약 1.2초(≈18틱) 지속되면 경고.
     private const int RedWarnTicks = 18;
@@ -71,7 +65,7 @@ public partial class NoiseMeterWindow : Window
     private double _scale = 1.0;
     private bool _fullscreen;
     private double _savedLeft, _savedTop;
-    private const double DisplayBaseHeight = 290; // 배율 1.0 일 때 표시부 높이(px)
+    private const double DisplayBaseHeight = 290;
     private const double ScaleMin = 0.7, ScaleMax = 3.0, ScaleStep = 0.2;
 
     public NoiseMeterWindow()
@@ -86,35 +80,25 @@ public partial class NoiseMeterWindow : Window
 
         SizeChanged += (_, _) => { if (!_userMoved && !_fullscreen) CenterOnPrimary(); };
         SetLamps(Level3.Off);
-        UpdateSensText();
+        SyncBoxesFromValues();
         UpdateCalStatus();
         ApplyScale();
     }
 
     // ── 외부(지휘자) API ───────────────────────────────────────
-    /// <summary>민감도(1~5). 종료 시 영속화에 사용.</summary>
-    public int Sensitivity
+    /// <summary>노랑 경고 기준(dB). 종료 시 영속화.</summary>
+    public double YellowAt
     {
-        get => _sensitivity;
-        set { _sensitivity = Math.Clamp(value, 1, 5); UpdateSensText(); }
+        get => _yellowAt;
+        set { _yellowAt = Math.Clamp(value, 20, 110); SyncBoxesFromValues(); }
     }
 
-    /// <summary>교실 기준 — 조용 레벨(0~100, -1=미설정). 종료 시 영속화.</summary>
-    public double QuietRef
+    /// <summary>빨강 경고 기준(dB). 종료 시 영속화.</summary>
+    public double RedAt
     {
-        get => _quietRef;
-        set { _quietRef = value; UpdateCalStatus(); }
+        get => _redAt;
+        set { _redAt = Math.Clamp(value, 20, 110); SyncBoxesFromValues(); }
     }
-
-    /// <summary>교실 기준 — 시끄러움 레벨(0~100, -1=미설정). 종료 시 영속화.</summary>
-    public double LoudRef
-    {
-        get => _loudRef;
-        set { _loudRef = value; UpdateCalStatus(); }
-    }
-
-    /// <summary>두 기준이 모두 유효하고 순서가 맞으면 캘리브레이션 사용.</summary>
-    private bool IsCalibrated => _quietRef >= 0 && _loudRef > _quietRef + 3;
 
     /// <summary>자동 기준 학습 사용 여부. 종료 시 영속화.</summary>
     public bool AutoLearn
@@ -124,6 +108,9 @@ public partial class NoiseMeterWindow : Window
         {
             _autoLearn = value;
             if (AutoCheck != null) AutoCheck.IsChecked = value;
+            if (YellowBox != null) YellowBox.IsEnabled = !value;
+            if (RedBox != null) RedBox.IsEnabled = !value;
+            if (value) { _autoQuiet = -1; _autoLoud = -1; }
             UpdateCalStatus();
         }
     }
@@ -191,7 +178,6 @@ public partial class NoiseMeterWindow : Window
         _micOn = false;
         MicButton.Content = "▶ 시작";
         MicStatus.Text = "";
-        CancelCapture();
         UpdateCalStatus();
         SetState(Level3.Off);
         LevelText.Text = "0";
@@ -210,25 +196,15 @@ public partial class NoiseMeterWindow : Window
         double level = _monitor.Level;
         LevelText.Text = ((int)Math.Round(level)).ToString();
 
-        // 레벨 막대(최대 폭 210).
-        LevelBar.Width = Math.Clamp(level / 100.0 * 210.0, 0, 210);
-
-        // 기준 측정 중이면 레벨을 누적하고, 신호등 판정은 잠시 건너뛴다.
-        if (_capTarget != 0)
-        {
-            _capSum += level;
-            _capCount++;
-            if (--_capTicksLeft <= 0)
-                FinishCapture();
-            return;
-        }
+        // 레벨 막대(대략 40~95 dB → 0~폭).
+        LevelBar.Width = Math.Clamp((level - 40) / 55.0, 0, 1) * 210.0;
 
         if (_autoLearn)
             AutoAdapt(level);
 
-        var (greenMax, yellowMax) = CurrentThresholds();
-        Level3 lvl = level <= greenMax ? Level3.Green
-                   : level <= yellowMax ? Level3.Yellow
+        double redAt = Math.Max(_redAt, _yellowAt);
+        Level3 lvl = level < _yellowAt ? Level3.Green
+                   : level < redAt ? Level3.Yellow
                    : Level3.Red;
         SetState(lvl);
 
@@ -253,126 +229,57 @@ public partial class NoiseMeterWindow : Window
         }
     }
 
-    /// <summary>현재 임계값(0~100). 교실 기준이 있으면 그것을, 없으면 민감도를 사용한다.</summary>
-    private (double greenMax, double yellowMax) CurrentThresholds()
+    // ── 경고 기준(dB) ──────────────────────────────────────────
+    private void OnThresholdChanged(object sender, TextChangedEventArgs e)
     {
-        if (IsCalibrated)
-        {
-            double range = _loudRef - _quietRef;
-            // 조용~시끄러움 구간을 초록(하위 40%)/노랑(40~72%)/빨강(상위)으로 나눈다.
-            double greenMax = _quietRef + range * 0.40;
-            double yellowMax = _quietRef + range * 0.72;
-            return (greenMax, yellowMax);
-        }
-        return Thresholds(_sensitivity);
+        // 초기화 중(다른 칸이 아직 생성 전)·자동 갱신 중에는 무시.
+        if (_syncingBoxes || _autoLearn || YellowBox == null || RedBox == null) return;
+        if (double.TryParse(YellowBox.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double y))
+            _yellowAt = Math.Clamp(y, 20, 110);
+        if (double.TryParse(RedBox.Text, NumberStyles.Any, CultureInfo.InvariantCulture, out double r))
+            _redAt = Math.Clamp(r, 20, 110);
     }
-
-    /// <summary>민감도(1~5) → (greenMax, yellowMax) 임계값(0~100).
-    /// 예민할수록 임계값이 낮아 작은 소리에도 노랑/빨강으로 넘어간다.</summary>
-    private static (double greenMax, double yellowMax) Thresholds(int sens)
-    {
-        double t = (sens - 1) / 4.0; // 0(둔감)~1(예민)
-        double greenMax = 55 - 30 * t; // 55 → 25
-        double yellowMax = 78 - 33 * t; // 78 → 45
-        return (greenMax, yellowMax);
-    }
-
-    // ── 교실 기준 맞추기(캘리브레이션) ─────────────────────────
-    private void OnCalQuiet(object sender, RoutedEventArgs e) => StartCapture(1);
-    private void OnCalLoud(object sender, RoutedEventArgs e) => StartCapture(2);
 
     private void OnAutoToggle(object sender, RoutedEventArgs e)
     {
-        _autoLearn = AutoCheck.IsChecked == true;
-        // 자동을 처음 켤 때 기준이 비어 있으면 현재 레벨로 씨앗을 심는다(범위는 관찰하며 벌어진다).
-        if (_autoLearn && (_quietRef < 0 || _loudRef < 0))
-        {
-            double now = _monitor.Level;
-            _quietRef = now;
-            _loudRef = now;
-        }
-        UpdateCalStatus();
+        AutoLearn = AutoCheck.IsChecked == true;
     }
 
-    /// <summary>자동 학습: 조용은 관찰된 최저를 따라가되 서서히 오르고,
-    /// 시끄러움은 관찰된 최고를 따라가되 서서히 내린다. 수동 버튼으로 고정한 값도 여기서 이어 조정된다.</summary>
+    /// <summary>자동 학습: 관찰된 최저(조용)/최고(시끄러움)를 따라가며 노랑·빨강 기준을 채운다.
+    /// 조용은 서서히 오르고, 시끄러움은 서서히 내려 교실 변화에 적응한다.</summary>
     private void AutoAdapt(double level)
     {
-        if (_quietRef < 0) _quietRef = level;
-        if (_loudRef < 0) _loudRef = level;
+        if (_autoQuiet < 0) { _autoQuiet = level; _autoLoud = level; }
 
-        // 조용 기준: 더 낮은 소리를 만나면 즉시 내리고, 아니면 조금씩 올린다.
-        _quietRef = level < _quietRef ? level : _quietRef + AutoQuietRise;
-        // 시끄러움 기준: 더 큰 소리를 만나면 즉시 올리고, 아니면 조금씩 내린다.
-        _loudRef = level > _loudRef ? level : _loudRef - AutoLoudDecay;
+        _autoQuiet = level < _autoQuiet ? level : _autoQuiet + AutoQuietRise;
+        _autoLoud = level > _autoLoud ? level : _autoLoud - AutoLoudDecay;
+        if (_autoLoud < _autoQuiet) _autoLoud = _autoQuiet;
 
-        _quietRef = Math.Clamp(_quietRef, 0, 100);
-        _loudRef = Math.Clamp(_loudRef, 0, 100);
-        if (_loudRef < _quietRef) _loudRef = _quietRef;
-
-        UpdateCalStatus();
-    }
-
-    private void OnCalReset(object sender, RoutedEventArgs e)
-    {
-        _quietRef = -1;
-        _loudRef = -1;
-        _capTarget = 0;
-        UpdateCalStatus();
-    }
-
-    private void StartCapture(int target)
-    {
-        if (!_micOn)
+        double range = _autoLoud - _autoQuiet;
+        if (range >= 4)
         {
-            CalStatus.Text = "먼저 ▶ 시작을 누르세요";
-            return;
+            _yellowAt = _autoQuiet + range * 0.45;
+            _redAt = _autoQuiet + range * 0.78;
+            SyncBoxesFromValues();
+            UpdateCalStatus();
         }
-        _capTarget = target;
-        _capSum = 0;
-        _capCount = 0;
-        _capTicksLeft = CapTicks;
-        CalQuietBtn.IsEnabled = false;
-        CalLoudBtn.IsEnabled = false;
-        CalStatus.Text = target == 1 ? "조용 기준 측정 중…" : "시끄러움 기준 측정 중…";
     }
 
-    private void FinishCapture()
+    private void SyncBoxesFromValues()
     {
-        double avg = _capSum / Math.Max(1, _capCount);
-        if (_capTarget == 1) _quietRef = avg;
-        else if (_capTarget == 2) _loudRef = avg;
-
-        _capTarget = 0;
-        CalQuietBtn.IsEnabled = true;
-        CalLoudBtn.IsEnabled = true;
-        UpdateCalStatus();
-    }
-
-    private void CancelCapture()
-    {
-        _capTarget = 0;
-        if (CalQuietBtn != null) CalQuietBtn.IsEnabled = true;
-        if (CalLoudBtn != null) CalLoudBtn.IsEnabled = true;
+        if (YellowBox == null || RedBox == null) return;
+        _syncingBoxes = true;
+        YellowBox.Text = ((int)Math.Round(_yellowAt)).ToString();
+        RedBox.Text = ((int)Math.Round(_redAt)).ToString();
+        _syncingBoxes = false;
     }
 
     private void UpdateCalStatus()
     {
         if (CalStatus == null) return;
-        if (_capTarget != 0) return; // 측정 중 문구 유지
-
-        if (IsCalibrated)
-            CalStatus.Text = _autoLearn
-                ? $"자동 학습 중 (조용 {_quietRef:0} · 시끄러움 {_loudRef:0})"
-                : $"교실 기준 사용 중 (조용 {_quietRef:0} · 시끄러움 {_loudRef:0})";
-        else if (_autoLearn)
-            CalStatus.Text = "자동 학습 중… 소음 범위 익히는 중";
-        else if (_quietRef >= 0 && _loudRef >= 0)
-            CalStatus.Text = "‘시끄러움’이 ‘조용’보다 커야 해요 — 다시 잡아주세요";
-        else if (_quietRef >= 0 || _loudRef >= 0)
-            CalStatus.Text = "나머지 기준도 잡아주세요";
-        else
-            CalStatus.Text = "기준 미설정 — 민감도로 동작";
+        CalStatus.Text = _autoLearn
+            ? $"자동 학습 중 (노랑 {Math.Round(_yellowAt)} · 빨강 {Math.Round(_redAt)})"
+            : "현재 소리를 보며 숫자를 정하세요";
     }
 
     private void SetState(Level3 lvl)
@@ -401,11 +308,6 @@ public partial class NoiseMeterWindow : Window
         LampGreen.Effect = lvl == Level3.Green ? Glow(0x44, 0xD1, 0x3B) : null;
     }
 
-    // ── 민감도 조작 ────────────────────────────────────────────
-    private void OnSensPlus(object sender, RoutedEventArgs e) => Sensitivity = _sensitivity + 1;
-    private void OnSensMinus(object sender, RoutedEventArgs e) => Sensitivity = _sensitivity - 1;
-    private void UpdateSensText() { if (SensText != null) SensText.Text = _sensitivity.ToString(); }
-
     private void OnCloseClick(object sender, RoutedEventArgs e) => HideMeter();
 
     // ── 크기(배율) ─────────────────────────────────────────────
@@ -416,7 +318,6 @@ public partial class NoiseMeterWindow : Window
     {
         if (SizeText != null)
             SizeText.Text = $"{Math.Round(_scale * 100)}%";
-        // 전체화면에서는 Viewbox 가 화면을 꽉 채우므로 높이를 고정하지 않는다.
         if (DisplayBox != null && !_fullscreen)
             DisplayBox.Height = DisplayBaseHeight * _scale;
     }
@@ -435,7 +336,6 @@ public partial class NoiseMeterWindow : Window
         _savedLeft = Left;
         _savedTop = Top;
 
-        // 주모니터를 꽉 채운다(가상화면 좌표 → DIP 환산).
         var p = System.Windows.Forms.Screen.PrimaryScreen;
         var src = PresentationSource.FromVisual(this);
         double sx = src?.CompositionTarget?.TransformToDevice.M11 ?? 1.0;
@@ -455,14 +355,13 @@ public partial class NoiseMeterWindow : Window
             Height = SystemParameters.PrimaryScreenHeight;
         }
 
-        // 큰 화면용 레이아웃: 조작부/헤더 숨기고 표시부를 화면 가득 확대.
         HeaderText.Visibility = Visibility.Collapsed;
         ControlPanel.Visibility = Visibility.Collapsed;
         Root.CornerRadius = new CornerRadius(0);
         Root.Padding = new Thickness(48);
-        Root.Background = FullscreenBg; // 교실 표시용 불투명 배경
+        Root.Background = FullscreenBg;
         DisplayRow.Height = new GridLength(1, GridUnitType.Star);
-        DisplayBox.Height = double.NaN;                 // Viewbox 가 남는 공간을 채우도록
+        DisplayBox.Height = double.NaN;
         DisplayBox.VerticalAlignment = VerticalAlignment.Stretch;
         FullBtn.Content = "🡼 작게";
         Topmost = true;
@@ -485,12 +384,10 @@ public partial class NoiseMeterWindow : Window
         SizeToContent = SizeToContent.WidthAndHeight;
         ApplyScale();
 
-        // 원래 창 위치로 복귀(레이아웃 후 보정).
         Left = _savedLeft; Top = _savedTop;
         Dispatcher.BeginInvoke(new Action(() =>
         {
-            var (l, t) = (Left, Top);
-            if (l < 0 || t < 0 || l > SystemParameters.VirtualScreenWidth || t > SystemParameters.VirtualScreenHeight)
+            if (Left < 0 || Top < 0 || Left > SystemParameters.VirtualScreenWidth || Top > SystemParameters.VirtualScreenHeight)
                 CenterOnPrimary();
         }), DispatcherPriority.Loaded);
     }

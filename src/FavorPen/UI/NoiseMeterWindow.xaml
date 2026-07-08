@@ -123,36 +123,33 @@
                     <Button Style="{StaticResource Ctl}" Content="+" ToolTip="크게" Click="OnSizeBigger"/>
                 </StackPanel>
 
-                <!-- 민감도 -->
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,8">
-                    <TextBlock Text="민감도" Foreground="{StaticResource Sub}" FontSize="13"
-                               VerticalAlignment="Center" Margin="0,0,10,0"/>
-                    <Button Style="{StaticResource Ctl}" Content="−" ToolTip="덜 예민하게" Click="OnSensMinus"/>
-                    <TextBlock x:Name="SensText" Text="3" Foreground="{StaticResource Ink}"
-                               FontSize="17" FontWeight="Bold" Width="40" TextAlignment="Center"
-                               VerticalAlignment="Center"/>
-                    <Button Style="{StaticResource Ctl}" Content="+" ToolTip="더 예민하게" Click="OnSensPlus"/>
-                </StackPanel>
-
-                <!-- 교실 기준 맞추기(캘리브레이션) -->
+                <!-- 경고 기준(dB) 직접 입력 -->
                 <Border Background="#14FFFFFF" CornerRadius="10" Padding="10,8" Margin="0,0,0,12">
                     <StackPanel>
-                        <TextBlock Text="교실 기준 맞추기" Foreground="{StaticResource Sub}" FontSize="12"
-                                   HorizontalAlignment="Center" Margin="0,0,0,6"/>
+                        <TextBlock Text="경고 기준 (dB)" Foreground="{StaticResource Sub}" FontSize="12"
+                                   HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <TextBlock Text="노랑" Foreground="#FFFFC61A" FontSize="13" FontWeight="Bold"
+                                       VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <TextBox x:Name="YellowBox" Width="52" Text="75" FontSize="15"
+                                     TextAlignment="Center" Foreground="{StaticResource Ink}"
+                                     Background="#22FFFFFF" BorderBrush="#44FFFFFF" BorderThickness="1"
+                                     CaretBrush="{StaticResource Ink}" Padding="0,4"
+                                     ToolTip="이 dB 이상이면 노랑" TextChanged="OnThresholdChanged"/>
+                            <TextBlock Text="빨강" Foreground="#FFE53935" FontSize="13" FontWeight="Bold"
+                                       VerticalAlignment="Center" Margin="16,0,6,0"/>
+                            <TextBox x:Name="RedBox" Width="52" Text="88" FontSize="15"
+                                     TextAlignment="Center" Foreground="{StaticResource Ink}"
+                                     Background="#22FFFFFF" BorderBrush="#44FFFFFF" BorderThickness="1"
+                                     CaretBrush="{StaticResource Ink}" Padding="0,4"
+                                     ToolTip="이 dB 이상이면 빨강" TextChanged="OnThresholdChanged"/>
+                        </StackPanel>
                         <CheckBox x:Name="AutoCheck" Content="🤖 자동으로 맞추기"
                                   Foreground="{StaticResource Ink}" FontSize="12"
-                                  HorizontalAlignment="Center" Margin="0,0,0,6"
-                                  ToolTip="켜두면 관찰된 최저/최고 소음으로 기준을 스스로 조정합니다"
+                                  HorizontalAlignment="Center" Margin="0,8,0,0"
+                                  ToolTip="켜두면 관찰된 최저/최고 소음으로 기준을 스스로 채웁니다"
                                   Click="OnAutoToggle"/>
-                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                            <Button x:Name="CalQuietBtn" Style="{StaticResource Ctl}" Content="🔈 조용할 때"
-                                    ToolTip="조용한 지금 상태를 '조용' 기준으로 잡습니다(고정)" Click="OnCalQuiet"/>
-                            <Button x:Name="CalLoudBtn" Style="{StaticResource Ctl}" Content="🔊 시끄러울 때"
-                                    ToolTip="시끄러운 지금 상태를 '시끄러움' 기준으로 잡습니다(고정)" Click="OnCalLoud"/>
-                            <Button Style="{StaticResource Ctl}" Content="↺"
-                                    ToolTip="기준 지우고 민감도 사용" Click="OnCalReset"/>
-                        </StackPanel>
-                        <TextBlock x:Name="CalStatus" Text="기준 미설정 — 민감도로 동작"
+                        <TextBlock x:Name="CalStatus" Text="현재 소리를 보며 숫자를 정하세요"
                                    Foreground="{StaticResource Sub}" FontSize="11"
                                    HorizontalAlignment="Center" Margin="0,6,0,0"/>
                     </StackPanel>

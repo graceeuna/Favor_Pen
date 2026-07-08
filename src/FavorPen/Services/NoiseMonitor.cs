@@ -25,12 +25,14 @@ public sealed class NoiseMonitor : IDisposable
     private volatile MonitorState _state = MonitorState.Stopped;
     private bool _disposed;
 
-    // 레벨 매핑: dBFS(-base..0) → 0..100. base 가 클수록 조용한 소리도 잘 잡힌다.
-    private const double DbSpan = 70.0;
+    // 레벨 매핑: dBFS(≤0) 에 오프셋을 더해 실제 교실 dB 느낌의 값으로 보여 준다.
+    // 절대 보정(SPL)은 아니며 이 마이크 기준 상대값이다. 대략 조용 ~50, 대화 ~70, 매우 시끄러움 ~90+.
+    private const double SplOffset = 100.0;
+    private const double SplFloor = 20.0, SplCeil = 110.0;
     // EMA 평활 계수(0~1). 클수록 반응 빠르고 작을수록 부드럽다.
     private const double Smoothing = 0.4;
 
-    /// <summary>현재 소음 레벨(0~100). 스레드 안전.</summary>
+    /// <summary>현재 소음 레벨(대략 dB, 20~110). 스레드 안전.</summary>
     public double Level => BitConverter.Int64BitsToDouble(Interlocked.Read(ref _levelBits));
 
     /// <summary>현재 상태.</summary>
@@ -102,9 +104,9 @@ public sealed class NoiseMonitor : IDisposable
         }
 
         double rms = Math.Sqrt(sumSq / count);
-        // dBFS: 무음 방지를 위해 하한을 둔다.
+        // dBFS: 무음 방지를 위해 하한을 둔다. 오프셋을 더해 교실 dB 느낌의 값으로.
         double db = 20.0 * Math.Log10(Math.Max(rms, 1e-7));
-        double target = Math.Clamp((db + DbSpan) / DbSpan * 100.0, 0, 100);
+        double target = Math.Clamp(db + SplOffset, SplFloor, SplCeil);
 
         double prev = Level;
         double next = prev + (target - prev) * Smoothing;
