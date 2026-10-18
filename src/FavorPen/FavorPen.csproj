@@ -14,6 +14,14 @@
     <Description>무설치 화면 주석 도구 (Epic Pen 호환 기능 클론)</Description>
     <!-- 실행파일(.exe) 아이콘 — 작업표시줄/탐색기/Alt+Tab에 표시 -->
     <ApplicationIcon>Assets\favorpen.ico</ApplicationIcon>
+    <!--
+      혼합 DPI(배율이 서로 다른 멀티모니터)에서 투명 오버레이가 보조 모니터 전체를 덮도록
+      System DPI 인식을 사용한다. 기본값 Per-Monitor 에서는 AllowsTransparency(레이어드) 창이
+      하나의 DPI로만 렌더링돼, 고배율 모니터에서 표면이 화면을 다 못 덮어(예: 150%→2/3만 덮임)
+      나머지가 투명해지며 그림이 안 그려진다. System 이면 DWM 이 비트맵 스케일로 전체를 덮는다.
+      (WPF 매니페스트 + WinForms HighDpiMode 를 함께 맞춰 주는 프로젝트 속성.)
+    -->
+    <ApplicationHighDpiMode>SystemAware</ApplicationHighDpiMode>
   </PropertyGroup>
 
   <!-- WPF + WinForms 동시 사용 시 System.Drawing / System.Windows.Forms 전역(implicit) using이
