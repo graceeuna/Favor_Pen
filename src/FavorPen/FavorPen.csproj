@@ -16,12 +16,15 @@
     <ApplicationIcon>Assets\favorpen.ico</ApplicationIcon>
     <!--
       혼합 DPI(배율이 서로 다른 멀티모니터)에서 투명 오버레이가 보조 모니터 전체를 덮도록
-      System DPI 인식을 사용한다. 기본값 Per-Monitor 에서는 AllowsTransparency(레이어드) 창이
-      하나의 DPI로만 렌더링돼, 고배율 모니터에서 표면이 화면을 다 못 덮어(예: 150%→2/3만 덮임)
-      나머지가 투명해지며 그림이 안 그려진다. System 이면 DWM 이 비트맵 스케일로 전체를 덮는다.
+      DPI 완전 무시(DpiUnaware)를 사용한다. 모든 모니터를 동일한 96 DPI 좌표계로 취급하므로
+      모니터 간 DPI 차이가 사라져, 단일 AllowsTransparency(레이어드) 오버레이가 가상 화면
+      전체를 빈틈없이 덮는다(DWM 이 각 모니터로 비트맵 스케일). 배율이 100%가 아닌 모니터는
+      약간 부드럽게 보일 수 있으나 "안 그려지는" 영역은 없어진다.
+        · SystemAware 로는 레이어드 표면이 고배율 모니터를 끝까지 못 덮어 일부가 비는 한계가 있었음.
+        · 기본값 Per-Monitor 는 더 심함(150%→2/3만 덮임).
       (WPF 매니페스트 + WinForms HighDpiMode 를 함께 맞춰 주는 프로젝트 속성.)
     -->
-    <ApplicationHighDpiMode>SystemAware</ApplicationHighDpiMode>
+    <ApplicationHighDpiMode>DpiUnaware</ApplicationHighDpiMode>
   </PropertyGroup>
 
   <!-- WPF + WinForms 동시 사용 시 System.Drawing / System.Windows.Forms 전역(implicit) using이
