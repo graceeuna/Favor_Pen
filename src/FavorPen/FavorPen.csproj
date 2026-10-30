@@ -15,11 +15,13 @@
     <!-- 실행파일(.exe) 아이콘 — 작업표시줄/탐색기/Alt+Tab에 표시 -->
     <ApplicationIcon>Assets\favorpen.ico</ApplicationIcon>
     <!--
-      모니터마다 별도 오버레이 창을 띄우므로 Per-Monitor-V2 DPI 인식을 사용한다.
-      각 창이 자기 모니터 위에서 그 모니터의 배율로 렌더링돼 선명하게 전체를 덮는다
-      (단일 창으로 혼합 DPI 를 덮으려던 방식의 한계를 모니터별 창으로 근본 해결).
+      DPI 인식은 System 을 사용한다. 모니터마다 별도 오버레이 창을 띄우므로
+      각 창(단일 모니터)은 System 인식에서도 DWM 비트맵 스케일로 자기 모니터 전체를 덮는다
+      (배율 다른 모니터는 잉크가 아주 약간 부드러워질 수 있음).
+      Per-Monitor-V2 는 보조 모니터를 더 선명하게 하지만, SizeToContent 툴바/팝업이
+      1.5배로 커지는 WPF 버그가 있어 System 으로 둔다.
     -->
-    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <ApplicationHighDpiMode>SystemAware</ApplicationHighDpiMode>
   </PropertyGroup>
 
   <!-- WPF + WinForms 동시 사용 시 System.Drawing / System.Windows.Forms 전역(implicit) using이
