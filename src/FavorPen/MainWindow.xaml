@@ -14,21 +14,15 @@
         ResizeMode="NoResize"
         WindowStartupLocation="Manual"
         KeyDown="OnKeyDown">
+    <!-- 주모니터 오버레이. 다른 모니터는 OverlayWindow(위성)가 덮는다(혼합 DPI 대응).
+         단일 투명 오버레이는 배율 다른 보조 모니터를 다 못 덮으므로 모니터마다 창을 둔다. -->
     <Grid>
-        <!-- ① 백드롭 레이어(잉크 뒤): FR-16 화이트보드/블랙보드 불투명 배경.
-             기본 Collapsed. WhiteboardController 가 색/표시 영역을 제어한다. -->
+        <!-- ① 백드롭(화이트보드/블랙보드 불투명 배경). 기본 숨김. -->
         <Border x:Name="BackdropLayer" Visibility="Collapsed"/>
-
-        <!-- ② 그리기 표면(InkCanvas): 펜/하이라이터/지우개 스트로크 + 커밋된 벡터 객체
-             (도형·텍스트·넘버링)는 InkSurface.Children 으로 추가된다.
-             ★ 배경 alpha는 0이면 안 된다: 완전 투명(alpha=0) 픽셀 위에서는 OS가 레이어드 창을
-             건너뛰어(Raw Input Thread skip) 마우스 입력이 아래 앱으로 통과 → 그림이 안 그려진다.
-             #01000000(alpha 1/255, 사실상 비가시)로 두면 입력을 포착하면서도 화면엔 안 보인다.
-             통과 모드에서는 WS_EX_TRANSPARENT로 강제 통과하므로 영향 없음. -->
+        <!-- ② 그리기 표면(펜/하이라이터/지우개 + 도형/텍스트/넘버링).
+             배경 alpha=1/255 로 입력 포착하되 비가시. 통과 모드는 WS_EX_TRANSPARENT 로 처리. -->
         <InkCanvas x:Name="InkSurface" Background="#01000000"/>
-
-        <!-- ③ 오버레이 레이어(잉크 위, 입력 비차단): 도형 드래그 미리보기 + FR-21 헤일로 커서.
-             IsHitTestVisible=False 이므로 마우스 입력을 가로채지 않는다(시각 전용). -->
+        <!-- ③ 오버레이(도형 미리보기 + 헤일로). 입력 비차단. -->
         <Canvas x:Name="OverlayLayer" IsHitTestVisible="False"/>
     </Grid>
 </Window>

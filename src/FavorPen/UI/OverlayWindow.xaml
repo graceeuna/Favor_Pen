@@ -1,0 +1,21 @@
+<Window x:Class="FavorPen.UI.OverlayWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="FavorPen Overlay"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        Background="Transparent"
+        Topmost="True"
+        ShowInTaskbar="False"
+        ResizeMode="NoResize"
+        WindowStartupLocation="Manual">
+    <Grid>
+        <!-- 백드롭(화이트보드/블랙보드 불투명 배경). 기본 숨김. -->
+        <Border x:Name="BackdropLayer" Visibility="Collapsed"/>
+        <!-- 그리기 표면(펜/하이라이터/지우개 + 도형/텍스트/넘버링).
+             배경 alpha=1/255 로 입력을 포착하되 화면엔 안 보이게. 통과 모드는 WS_EX_TRANSPARENT 로 처리. -->
+        <InkCanvas x:Name="InkSurface" Background="#01000000"/>
+        <!-- 오버레이(도형 미리보기 + 헤일로). 입력 비차단. -->
+        <Canvas x:Name="OverlayLayer" IsHitTestVisible="False"/>
+    </Grid>
+</Window>

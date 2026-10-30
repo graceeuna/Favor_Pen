@@ -71,11 +71,15 @@ public partial class MainWindow : Window
     private ToolbarWindow? _toolbar;
     private TrayService? _tray;
 
+    // 비주(非主)모니터용 오버레이 창들. 주모니터는 이 창(MainWindow) 자신이 담당하고,
+    // 나머지 모니터는 위성 OverlayWindow 가 덮는다. 도구/색/굵기/지우기 등은 주+위성 모두에 적용.
+    private readonly List<OverlayWindow> _satellites = new();
+
     public MainWindow()
     {
         InitializeComponent();
         _settings = SettingsStore.Load();
-        CoverVirtualScreen();
+        CoverPrimaryScreen();
         Loaded += OnLoaded;
         Closed += OnClosed;
         // 그릴 때(오버레이 활성화) 툴바가 전체화면 오버레이 뒤로 가려지지 않도록 최상단 재확정.
@@ -107,12 +111,21 @@ public partial class MainWindow : Window
         _tray?.SetModeText("툴바 복구됨");
     }
 
-    private void CoverVirtualScreen()
+    /// <summary>이 창(주 오버레이)을 주모니터에 맞춘다. 다른 모니터는 위성 오버레이가 덮는다.
+    /// hwnd 생성 후엔 물리 px(Per-Monitor-V2)로 정밀 배치하고, 그 전엔 러프 DIP 크기만 둔다.</summary>
+    private void CoverPrimaryScreen()
     {
-        Left = SystemParameters.VirtualScreenLeft;
-        Top = SystemParameters.VirtualScreenTop;
-        Width = SystemParameters.VirtualScreenWidth;
-        Height = SystemParameters.VirtualScreenHeight;
+        var p = System.Windows.Forms.Screen.PrimaryScreen;
+        if (_hwnd != IntPtr.Zero && p != null)
+        {
+            var b = p.Bounds; // 물리 px
+            SetWindowPos(_hwnd, HWND_TOPMOST, b.X, b.Y, b.Width, b.Height, SWP_NOACTIVATE);
+            return;
+        }
+        Left = 0;
+        Top = 0;
+        Width = SystemParameters.PrimaryScreenWidth;
+        Height = SystemParameters.PrimaryScreenHeight;
     }
 
     /// <summary>주어진 창 위치가 현재 가상 화면(모든 모니터) 밖이면 보이는 기본 위치로 보정한다.
@@ -140,6 +153,8 @@ public partial class MainWindow : Window
 
         int ex = GetWindowLong(_hwnd, GWL_EXSTYLE);
         SetWindowLong(_hwnd, GWL_EXSTYLE, ex | WS_EX_TOOLWINDOW); // Alt+Tab 숨김
+
+        CoverPrimaryScreen(); // hwnd 생성됨 → 주모니터에 물리 px 로 정밀 배치
 
         HwndSource.FromHwnd(_hwnd)?.AddHook(WndProc);
         RegisterHotkeys();
@@ -221,6 +236,38 @@ public partial class MainWindow : Window
         // 일부 전역 단축키가 다른 앱에 점유되어 등록 실패했으면 트레이로 알린다.
         if (_hotkeyFailures.Count > 0)
             _tray.SetModeText($"일부 단축키 등록 실패(다른 앱 점유): {string.Join(", ", _hotkeyFailures)}");
+
+        // 비주모니터용 위성 오버레이 생성(혼합 DPI 대응). 주모니터는 이 창이 담당.
+        BuildSatellites();
+    }
+
+    // ── 위성 오버레이(비주모니터) ──────────────────────────
+    /// <summary>주모니터를 제외한 각 모니터에 오버레이 창을 하나씩 띄우고 현재 상태를 반영한다.</summary>
+    private void BuildSatellites()
+    {
+        foreach (var sc in System.Windows.Forms.Screen.AllScreens)
+        {
+            if (sc.Primary) continue; // 주모니터는 이 창(MainWindow)이 담당
+            var ov = new OverlayWindow(_undo, sc);
+            ov.Show(); // 자기 모니터에 물리 px 로 배치됨(OnSourceInitialized)
+            ApplyToolTo(ov.Surface, ov.Objects);
+            ov.SetPassThrough(_passThrough);
+            if (_halo?.IsEnabled == true)
+                ov.Halo.Enable(ParseColor(_settings.HighlightCursorColor), _settings.HighlightCursorRadius);
+            _satellites.Add(ov);
+        }
+        EnsureToolbarTop(); // 위성이 뜬 뒤 툴바를 최상단으로
+    }
+
+    /// <summary>위성 오버레이를 모두 닫고 리스트를 비운다(종료·디스플레이 변경 시).</summary>
+    private void DisposeSatellites()
+    {
+        foreach (var ov in _satellites)
+        {
+            ov.Halo.Disable();
+            ov.Close();
+        }
+        _satellites.Clear();
     }
 
     // ── 도구별 색상·굵기 기억(FR-18) ───────────────────────
@@ -271,20 +318,29 @@ public partial class MainWindow : Window
     private static bool IsInkTool(ToolKind t) =>
         t is ToolKind.Pen or ToolKind.Highlighter or ToolKind.Eraser;
 
+    /// <summary>현재 도구를 모든 오버레이(주 + 위성)에 적용한다.</summary>
     private void ApplyTool()
+    {
+        ApplyToolTo(InkSurface, _objects);
+        foreach (var ov in _satellites)
+            ApplyToolTo(ov.Surface, ov.Objects);
+    }
+
+    /// <summary>현재 도구를 특정 서피스(잉크 캔버스 + 객체 레이어)에 적용한다.</summary>
+    private void ApplyToolTo(InkCanvas ink, ObjectLayer? obj)
     {
         if (IsInkTool(_tool))
         {
             // 잉크 도구 → InkCanvas 가 처리. ObjectLayer 는 비활성(no-op).
-            if (_objects != null) _objects.ActiveTool = _tool;
+            if (obj != null) obj.ActiveTool = _tool;
 
             if (_tool == ToolKind.Eraser)
             {
-                InkSurface.EditingMode = InkCanvasEditingMode.EraseByStroke;
+                ink.EditingMode = InkCanvasEditingMode.EraseByStroke;
                 return;
             }
 
-            InkSurface.EditingMode = InkCanvasEditingMode.Ink;
+            ink.EditingMode = InkCanvasEditingMode.Ink;
             var da = new DrawingAttributes { FitToCurve = true };
             Color col = ParseColor(GetToolColorHex(_tool));
             if (_tool == ToolKind.Highlighter)
@@ -298,22 +354,39 @@ public partial class MainWindow : Window
                 da.Color = col;
             }
             da.Width = da.Height = GetToolWidth(_tool);
-            InkSurface.DefaultDrawingAttributes = da;
+            ink.DefaultDrawingAttributes = da;
         }
         else
         {
             // 객체 도구 → InkCanvas 입력은 끄고 ObjectLayer 가 마우스를 처리.
-            InkSurface.EditingMode = InkCanvasEditingMode.None;
-            if (_objects != null)
+            ink.EditingMode = InkCanvasEditingMode.None;
+            if (obj != null)
             {
-                _objects.ActiveTool = _tool;
-                _objects.StrokeColor = ParseColor(GetToolColorHex(_tool));
-                _objects.StrokeWidth = GetToolWidth(_tool);
-                _objects.Fill = _settings.LastFillMode;
-                _objects.FontSize = _settings.TextFontSize;
-                _objects.FontFamily = _settings.TextFontFamily;
+                obj.ActiveTool = _tool;
+                obj.StrokeColor = ParseColor(GetToolColorHex(_tool));
+                obj.StrokeWidth = GetToolWidth(_tool);
+                obj.Fill = _settings.LastFillMode;
+                obj.FontSize = _settings.TextFontSize;
+                obj.FontFamily = _settings.TextFontFamily;
             }
         }
+    }
+
+    /// <summary>모든 오버레이(주+위성)에서 진행 중 텍스트 편집을 확정/취소하고 도형 드래그를 취소.</summary>
+    private void EndAllInProgress(bool commitText)
+    {
+        _objects?.EndActiveTextEditing(commitText);
+        _objects?.CancelActiveDrag();
+        foreach (var ov in _satellites)
+            ov.EndInProgress(commitText);
+    }
+
+    /// <summary>모든 오버레이에서 진행 중 도형 드래그만 취소(통과 전환 등).</summary>
+    private void CancelAllDrag()
+    {
+        _objects?.CancelActiveDrag();
+        foreach (var ov in _satellites)
+            ov.Objects?.CancelActiveDrag();
     }
 
     private void SetTool(ToolKind t)
@@ -322,9 +395,8 @@ public partial class MainWindow : Window
         // → 펜 옆 마우스 버튼으로 마우스를 쓰다가 도구를 누르면 바로 그릴 수 있다.
         if (_passThrough) TogglePassThrough();
 
-        // 도구를 바꾸기 전 진행 중이던 텍스트는 확정하고 도형 드래그는 취소한다.
-        _objects?.EndActiveTextEditing(true);
-        _objects?.CancelActiveDrag();
+        // 도구를 바꾸기 전 진행 중이던 텍스트는 확정하고 도형 드래그는 취소한다(모든 오버레이).
+        EndAllInProgress(true);
 
         _tool = t;
         _settings.LastTool = t;
@@ -371,46 +443,61 @@ public partial class MainWindow : Window
     {
         if (_objects == null) return;
         FillMode m = _objects.CycleFill();
+        foreach (var ov in _satellites) ov.Objects.Fill = m; // 위성에도 동일 채움 적용
         _settings.LastFillMode = m;
         _toolbar?.SetFillMode(m);
     }
 
-    // ── 전체 지우기: 스트로크 + 벡터 객체를 하나의 Undo 항목으로 ──
+    // ── 전체 지우기: 모든 오버레이(주+위성)의 스트로크+벡터 객체를 하나의 Undo 항목으로 ──
     private void ClearAllAnnotations()
     {
         if (_strokeUndo == null) return;
 
-        // 진행 중인 텍스트 편집은 취소, 도형 드래그는 취소(지운 화면에 부활·미리보기 잔류 방지).
-        _objects?.EndActiveTextEditing(false);
-        _objects?.CancelActiveDrag();
+        // 진행 중인 텍스트 편집/도형 드래그 정리(지운 화면에 부활·미리보기 잔류 방지).
+        EndAllInProgress(false);
 
-        var strokes = new StrokeCollection(InkSurface.Strokes);
-        var children = InkSurface.Children.Cast<UIElement>().ToList();
-        if (strokes.Count == 0 && children.Count == 0) return;
+        var caps = new List<(InkCanvas ink, UndoRedoManager stroke, ObjectLayer? obj,
+                             StrokeCollection strokes, List<UIElement> children, int prevNext)>();
+        void Collect(InkCanvas ink, UndoRedoManager stroke, ObjectLayer? obj)
+        {
+            var strokes = new StrokeCollection(ink.Strokes);
+            var children = ink.Children.Cast<UIElement>().ToList();
+            caps.Add((ink, stroke, obj, strokes, children, obj?.NextNumber ?? 1));
+        }
+        Collect(InkSurface, _strokeUndo, _objects);
+        foreach (var ov in _satellites) Collect(ov.Surface, ov.StrokeUndo, ov.Objects);
 
-        int prevNext = _objects?.NextNumber ?? 1; // 번호 카운터를 undo로 복원하기 위해 저장
+        // 지울 게 하나도 없으면 그만.
+        if (caps.All(c => c.strokes.Count == 0 && c.children.Count == 0)) return;
 
         // 지금 비운다(스트로크는 히스토리 억제로 직접 제거).
-        _strokeUndo.ClearStrokesWithoutHistory();
-        InkSurface.Children.Clear();
-        _objects?.ResetNumbering(); // 전체지우기 후 번호는 1부터
+        foreach (var c in caps)
+        {
+            c.stroke.ClearStrokesWithoutHistory();
+            c.ink.Children.Clear();
+            c.obj?.ResetNumbering();
+        }
 
-        // Undo/Redo 는 _undo.IsApplying=true 상태에서 실행되므로
-        // 내부의 스트로크 add/clear 가 UndoRedoManager 에 다시 기록되지 않는다.
+        // 하나의 Undo 항목으로 전체 복원/재지우기(_undo.IsApplying 상태라 내부 변경은 재기록 안 됨).
         _undo.Push(
             undo: () =>
             {
-                InkSurface.Strokes.Add(strokes);
-                foreach (UIElement c in children)
-                    if (!InkSurface.Children.Contains(c))
-                        InkSurface.Children.Add(c);
-                if (_objects != null) _objects.NextNumber = prevNext;
+                foreach (var c in caps)
+                {
+                    c.ink.Strokes.Add(c.strokes);
+                    foreach (UIElement e in c.children)
+                        if (!c.ink.Children.Contains(e)) c.ink.Children.Add(e);
+                    if (c.obj != null) c.obj.NextNumber = c.prevNext;
+                }
             },
             redo: () =>
             {
-                InkSurface.Strokes.Clear();
-                InkSurface.Children.Clear();
-                _objects?.ResetNumbering();
+                foreach (var c in caps)
+                {
+                    c.ink.Strokes.Clear();
+                    c.ink.Children.Clear();
+                    c.obj?.ResetNumbering();
+                }
             });
     }
 
@@ -436,13 +523,18 @@ public partial class MainWindow : Window
     // ── 그리기/통과 토글 ───────────────────────────────────
     private void TogglePassThrough()
     {
-        _objects?.CancelActiveDrag(); // 통과 전환 시 진행 중 도형 드래그 정리
+        CancelAllDrag(); // 통과 전환 시 진행 중 도형 드래그 정리(모든 오버레이)
         _passThrough = !_passThrough;
+
+        // 주 오버레이(이 창)
         int ex = GetWindowLong(_hwnd, GWL_EXSTYLE);
         ex = _passThrough ? (ex | WS_EX_TRANSPARENT) : (ex & ~WS_EX_TRANSPARENT);
         SetWindowLong(_hwnd, GWL_EXSTYLE, ex);
-
         InkSurface.IsHitTestVisible = !_passThrough;
+
+        // 위성 오버레이들
+        foreach (var ov in _satellites) ov.SetPassThrough(_passThrough);
+
         _toolbar?.SetPassThrough(_passThrough);
         _tray?.SetModeText(_passThrough ? "통과 모드" : "그리기 모드");
     }
@@ -477,38 +569,32 @@ public partial class MainWindow : Window
     }
 
     // ── 화이트보드/블랙보드(FR-16) ─────────────────────────
+    // 모니터별 오버레이 구조에선 각 창의 백드롭이 자기 모니터를 채우므로(SetFullVirtual=창 전체),
+    // 모든 모니터에 동시에 적용한다(기존 '특정 모니터만' 지정 기능은 '모든 모니터'로 단순화).
     private void ToggleWhiteboard()
     {
         if (_whiteboard == null) return;
-        // 보드를 새로 켤 때(Off→표시)만 대상 모니터 영역을 설정(매 토글 재계산·풀스크린 리셋 방지).
-        if (_whiteboard.Mode == WhiteboardController.BoardMode.Off)
-            ApplyWhiteboardTarget();
-        var mode = _whiteboard.Cycle(
-            ParseColor(_settings.WhiteboardColor),
-            ParseColor(_settings.BlackboardColor));
+        Color white = ParseColor(_settings.WhiteboardColor);
+        Color black = ParseColor(_settings.BlackboardColor);
+
+        // 각 백드롭이 자기 모니터(창) 전체를 덮도록.
+        _whiteboard.SetFullVirtual();
+        foreach (var ov in _satellites) ov.Whiteboard.SetFullVirtual();
+
+        // 주 오버레이에서 모드를 순환(Off→흰→검), 위성은 같은 모드로 동기화.
+        var mode = _whiteboard.Cycle(white, black);
+        foreach (var ov in _satellites) SetBoardMode(ov.Whiteboard, mode, white, black);
         _toolbar?.SetWhiteboardActive(mode != WhiteboardController.BoardMode.Off);
     }
 
-    /// <summary>화이트보드 표시 대상(전체 가상화면 또는 특정 모니터)을 설정한다.</summary>
-    private void ApplyWhiteboardTarget()
+    private static void SetBoardMode(WhiteboardController wb, WhiteboardController.BoardMode mode, Color white, Color black)
     {
-        if (_whiteboard == null) return;
-        int idx = _settings.WhiteboardMonitorIndex;
-        var screens = System.Windows.Forms.Screen.AllScreens;
-        if (idx < 0 || idx >= screens.Length)
+        switch (mode)
         {
-            _whiteboard.SetFullVirtual();
-            return;
+            case WhiteboardController.BoardMode.White: wb.ShowWhite(white); break;
+            case WhiteboardController.BoardMode.Black: wb.ShowBlack(black); break;
+            default: wb.Hide(); break;
         }
-
-        // 물리 px → DIP 환산(이 창의 DPI 기준) 후 가상화면 원점 기준 오프셋으로 변환.
-        DpiScale dpi = VisualTreeHelper.GetDpi(this);
-        var b = screens[idx].Bounds; // 물리 px
-        double left = b.Left / dpi.DpiScaleX - SystemParameters.VirtualScreenLeft;
-        double top = b.Top / dpi.DpiScaleY - SystemParameters.VirtualScreenTop;
-        double w = b.Width / dpi.DpiScaleX;
-        double h = b.Height / dpi.DpiScaleY;
-        _whiteboard.SetTargetArea(left, top, w, h);
     }
 
     // ── 돋보기(FR-24) ──────────────────────────────────────
@@ -591,7 +677,19 @@ public partial class MainWindow : Window
         if (_halo.IsEnabled) _halo.Disable();
         else _halo.Enable(ParseColor(_settings.HighlightCursorColor), _settings.HighlightCursorRadius);
         _settings.HighlightCursorEnabled = _halo.IsEnabled;
+        SyncHaloToSatellites();
         _toolbar?.SetHaloActive(_halo.IsEnabled);
+    }
+
+    /// <summary>위성 오버레이들의 헤일로를 주 오버레이 상태에 맞춘다(커서가 있는 모니터에서만 보임).</summary>
+    private void SyncHaloToSatellites()
+    {
+        bool on = _halo?.IsEnabled == true;
+        foreach (var ov in _satellites)
+        {
+            if (on) ov.Halo.Enable(ParseColor(_settings.HighlightCursorColor), _settings.HighlightCursorRadius);
+            else ov.Halo.Disable();
+        }
     }
 
     /// <summary>헤일로 색·크기 설정 팝업(헤일로 버튼 우클릭). 변경은 실시간 반영·영속화.</summary>
@@ -604,6 +702,7 @@ public partial class MainWindow : Window
         {
             _halo.Enable(ParseColor(_settings.HighlightCursorColor), _settings.HighlightCursorRadius);
             _settings.HighlightCursorEnabled = true;
+            SyncHaloToSatellites();
             _toolbar?.SetHaloActive(true);
         }
 
@@ -614,11 +713,13 @@ public partial class MainWindow : Window
             {
                 _settings.HighlightCursorColor = c.ToString();
                 _halo!.Enable(c, _settings.HighlightCursorRadius); // 실시간 갱신
+                SyncHaloToSatellites();
             };
             _haloSettings.SizePicked += r =>
             {
                 _settings.HighlightCursorRadius = r;
                 _halo!.Enable(ParseColor(_settings.HighlightCursorColor), r);
+                SyncHaloToSatellites();
             };
         }
 
@@ -721,7 +822,10 @@ public partial class MainWindow : Window
 
     private void OnDisplayChanged(object? sender, EventArgs e) => Dispatcher.Invoke(() =>
     {
-        CoverVirtualScreen();
+        CoverPrimaryScreen();
+        // 모니터 구성이 바뀌면(연결/해제·배율 변경) 위성 오버레이를 다시 만든다.
+        DisposeSatellites();
+        BuildSatellites();
         // 모니터 분리(예: 노트북 도킹 해제)로 툴바가 화면 밖에 남는 것을 막는다.
         if (_toolbar != null)
         {
@@ -763,6 +867,7 @@ public partial class MainWindow : Window
                 UnregisterHotKey(_hwnd, (int)id);
 
         _halo?.Disable();
+        DisposeSatellites(); // 위성 오버레이 닫기
         _magnifier?.Close();
         _timerWin?.Close();
         _randomWin?.Close();
